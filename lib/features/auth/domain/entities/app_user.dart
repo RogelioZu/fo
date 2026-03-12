@@ -4,7 +4,8 @@ import 'package:equatable/equatable.dart';
 class AppUser extends Equatable {
   final String id;
   final String email;
-  final String? displayName;
+  final String? firstName;
+  final String? lastName;
   final String? username;
   final String? avatarUrl;
   final DateTime? birthday;
@@ -19,7 +20,8 @@ class AppUser extends Equatable {
   const AppUser({
     required this.id,
     required this.email,
-    this.displayName,
+    this.firstName,
+    this.lastName,
     this.username,
     this.avatarUrl,
     this.birthday,
@@ -32,11 +34,16 @@ class AppUser extends Equatable {
     required this.createdAt,
   });
 
+  /// Nombre completo (first + last).
+  String get displayName =>
+      [firstName, lastName].where((s) => s != null && s.isNotEmpty).join(' ');
+
   /// Crea una copia con campos modificados.
   AppUser copyWith({
     String? id,
     String? email,
-    String? displayName,
+    String? firstName,
+    String? lastName,
     String? username,
     String? avatarUrl,
     DateTime? birthday,
@@ -51,7 +58,8 @@ class AppUser extends Equatable {
     return AppUser(
       id: id ?? this.id,
       email: email ?? this.email,
-      displayName: displayName ?? this.displayName,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
       username: username ?? this.username,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       birthday: birthday ?? this.birthday,
@@ -69,7 +77,8 @@ class AppUser extends Equatable {
   List<Object?> get props => [
         id,
         email,
-        displayName,
+        firstName,
+        lastName,
         username,
         avatarUrl,
         birthday,
