@@ -1,0 +1,16 @@
+{
+  "version": "2.8",
+  "children": [
+    {
+      "type": "frame",
+      "id": "RT64G",
+      "x": 900,
+      "y": 0,
+      "name": "Login Screen",
+      "width": 402,
+      "height": 874,
+      "fill": "#FFFFFF",
+      "layout": "vertical"
+    }
+  ]
+}
