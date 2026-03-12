@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../theme/app_colors.dart';
 
 /// Barra de navegación superior de Finding Out.
-/// Flecha de retroceso a la izquierda + ícono sparkles a la derecha.
+/// Flecha de retroceso (lucide chevron-left) a la izquierda
+/// + ícono sparkles (lucide) a la derecha.
 class FoTopNav extends StatelessWidget {
   const FoTopNav({
     super.key,
@@ -22,12 +23,12 @@ class FoTopNav extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Flecha de retroceso
+        // Flecha de retroceso — lucide: chevron-left
         if (showBackButton)
           GestureDetector(
             onTap: onBack ?? () => Navigator.of(context).maybePop(),
             child: const Icon(
-              PhosphorIconsRegular.caretLeft,
+              LucideIcons.chevronLeft,
               color: AppColors.black,
               size: 24,
             ),
@@ -35,10 +36,10 @@ class FoTopNav extends StatelessWidget {
         else
           const SizedBox(width: 24),
 
-        // Ícono sparkles
+        // Ícono sparkles — lucide: sparkles
         if (showSparkle)
           const Icon(
-            PhosphorIconsRegular.sparkle,
+            LucideIcons.sparkles,
             color: AppColors.black,
             size: 24,
           )

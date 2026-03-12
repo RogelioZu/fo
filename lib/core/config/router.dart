@@ -4,19 +4,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/auth/presentation/screens/splash_screen.dart';
-// TODO: importar pantallas conforme se vayan creando
-// import '../../features/auth/presentation/screens/onboarding_screen.dart';
-// import '../../features/auth/presentation/screens/login_screen.dart';
-// import '../../features/auth/presentation/screens/register_screen.dart';
-// import '../../features/auth/presentation/screens/verify_email_screen.dart';
-// import '../../features/auth/presentation/screens/forgot_password_screen.dart';
-// import '../../features/auth/presentation/screens/reset_password_screen.dart';
-// import '../../features/auth/presentation/screens/profile_setup/setup_name_screen.dart';
-// import '../../features/auth/presentation/screens/profile_setup/setup_username_screen.dart';
-// import '../../features/auth/presentation/screens/profile_setup/setup_birthday_screen.dart';
-// import '../../features/auth/presentation/screens/profile_setup/setup_location_screen.dart';
-// import '../../features/auth/presentation/screens/profile_setup/setup_interests_screen.dart';
-// import '../../features/auth/presentation/screens/profile_setup/setup_photo_screen.dart';
+import '../../features/auth/presentation/screens/onboarding_screen.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/register_screen.dart';
+import '../../features/auth/presentation/screens/verify_email_screen.dart';
+import '../../features/auth/presentation/screens/forgot_password_screen.dart';
+import '../../features/auth/presentation/screens/reset_password_screen.dart';
+import '../../features/auth/presentation/screens/profile_setup/setup_name_screen.dart';
+import '../../features/auth/presentation/screens/profile_setup/setup_username_screen.dart';
+import '../../features/auth/presentation/screens/profile_setup/setup_birthday_screen.dart';
+import '../../features/auth/presentation/screens/profile_setup/setup_location_screen.dart';
+import '../../features/auth/presentation/screens/profile_setup/setup_interests_screen.dart';
+import '../../features/auth/presentation/screens/profile_setup/setup_photo_screen.dart';
 
 import '../constants/app_constants.dart';
 
@@ -45,8 +44,6 @@ class AppRouter {
       name: 'splash',
       builder: (context, state) => const SplashScreen(),
     ),
-    // TODO: descomentar rutas conforme se creen las pantallas
-    /*
     GoRoute(
       path: '/onboarding',
       name: 'onboarding',
@@ -116,7 +113,6 @@ class AppRouter {
         body: Center(child: Text('Home — TODO')),
       ),
     ),
-    */
   ];
 
   // ─── Redirect Logic ───
@@ -150,8 +146,8 @@ class AppRouter {
     // ignore: unused_local_variable
     final isOnSetupRoute = _setupRoutes.contains(currentPath);
 
-    // 1. Si no ha visto onboarding → mandarlo ahí
-    if (!hasSeenOnboarding && !isOnOnboarding && !isOnSplash) {
+    // 1. Si no ha visto onboarding → mandarlo ahí (excepto auth routes y splash)
+    if (!hasSeenOnboarding && !isOnOnboarding && !isOnSplash && !isOnAuthRoute) {
       return '/onboarding';
     }
 

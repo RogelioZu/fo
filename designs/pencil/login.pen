@@ -591,7 +591,7 @@
           "id": "8mJ7S",
           "name": "titleSp",
           "fill": "#000000",
-          "content": "Explore the app",
+          "content": "Finding Out",
           "fontFamily": "Inter",
           "fontSize": 24,
           "fontWeight": "800"
@@ -761,7 +761,8 @@
               "lineHeight": 1.5,
               "textAlign": "center",
               "fontFamily": "Inter",
-              "fontSize": 16
+              "fontSize": 16,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -938,7 +939,8 @@
               "lineHeight": 1.5,
               "textAlign": "center",
               "fontFamily": "Inter",
-              "fontSize": 16
+              "fontSize": 16,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -1115,7 +1117,8 @@
               "lineHeight": 1.5,
               "textAlign": "center",
               "fontFamily": "Inter",
-              "fontSize": 16
+              "fontSize": 16,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -2195,7 +2198,8 @@
               "content": "This is how others will see you on Finding Out.",
               "lineHeight": 1.5,
               "fontFamily": "Inter",
-              "fontSize": 16
+              "fontSize": 16,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -2373,7 +2377,8 @@
               "content": "Pick something unique. You can always change it later.",
               "lineHeight": 1.5,
               "fontFamily": "Inter",
-              "fontSize": 16
+              "fontSize": 16,
+              "fontWeight": "normal"
             },
             {
               "id": "Df1dR",
@@ -2556,7 +2561,8 @@
               "content": "We use this to personalize your experience and verify your age.",
               "lineHeight": 1.5,
               "fontFamily": "Inter",
-              "fontSize": 16
+              "fontSize": 16,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -2834,7 +2840,8 @@
               "content": "This helps us show you events nearby. You can change it anytime.",
               "lineHeight": 1.5,
               "fontFamily": "Inter",
-              "fontSize": 16
+              "fontSize": 16,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -3078,7 +3085,8 @@
               "content": "Pick at least 3 interests so we can personalize your feed.",
               "lineHeight": 1.5,
               "fontFamily": "Inter",
-              "fontSize": 16
+              "fontSize": 16,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -4072,7 +4080,8 @@
               "lineHeight": 1.5,
               "textAlign": "center",
               "fontFamily": "Inter",
-              "fontSize": 16
+              "fontSize": 16,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",

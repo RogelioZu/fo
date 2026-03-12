@@ -1,0 +1,82 @@
+import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_text_styles.dart';
+
+/// Fila de 3 botones de login social (icon-only, same width).
+/// Diseño RT64G: sBtn1 = Facebook (lucide), sBtn2 = G (text), sBtn3 = Apple (lucide).
+class SocialLoginRow extends StatelessWidget {
+  const SocialLoginRow({
+    super.key,
+    this.onGoogle,
+    this.onApple,
+    this.onFacebook,
+    // Mantener compatibilidad — onPhone queda por si se necesita
+    this.onPhone,
+    this.isGoogleLoading = false,
+    this.isAppleLoading = false,
+  });
+
+  final VoidCallback? onGoogle;
+  final VoidCallback? onApple;
+  final VoidCallback? onFacebook;
+  final VoidCallback? onPhone;
+  final bool isGoogleLoading;
+  final bool isAppleLoading;
+
+  Widget _buildSocialButton({
+    required Widget child,
+    required VoidCallback? onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 56,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: AppRadius.cardRadius,
+            border: Border.all(color: AppColors.inputBorder),
+          ),
+          alignment: Alignment.center,
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        // ─── Facebook ───
+        _buildSocialButton(
+          child: const Icon(LucideIcons.facebook, size: 24, color: AppColors.black),
+          onTap: onFacebook,
+        ),
+        const SizedBox(width: 16),
+
+        // ─── Google (letra G bold) ───
+        _buildSocialButton(
+          child: Text(
+            'G',
+            style: AppTextStyles.heading3.copyWith(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          onTap: onGoogle,
+        ),
+        const SizedBox(width: 16),
+
+        // ─── Apple ───
+        _buildSocialButton(
+          child: const Icon(LucideIcons.apple, size: 24, color: AppColors.black),
+          onTap: onApple,
+        ),
+      ],
+    );
+  }
+}
