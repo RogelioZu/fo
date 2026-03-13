@@ -5,11 +5,11 @@ class Validators {
   /// Valida un email con formato correcto.
   static String? email(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'El email es requerido';
+      return 'Email is required';
     }
     final regex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!regex.hasMatch(value.trim())) {
-      return 'Ingresa un email válido';
+      return 'Enter a valid email';
     }
     return null;
   }
@@ -17,16 +17,16 @@ class Validators {
   /// Valida una contraseña: mínimo 8 caracteres, 1 mayúscula, 1 número.
   static String? password(String? value) {
     if (value == null || value.isEmpty) {
-      return 'La contraseña es requerida';
+      return 'Password is required';
     }
     if (value.length < 8) {
-      return 'Mínimo 8 caracteres';
+      return 'Minimum 8 characters';
     }
     if (!RegExp(r'[A-Z]').hasMatch(value)) {
-      return 'Debe contener al menos una mayúscula';
+      return 'Must contain at least one uppercase letter';
     }
     if (!RegExp(r'[0-9]').hasMatch(value)) {
-      return 'Debe contener al menos un número';
+      return 'Must contain at least one number';
     }
     return null;
   }
@@ -34,10 +34,10 @@ class Validators {
   /// Valida que la confirmación de contraseña coincida.
   static String? confirmPassword(String? value, String password) {
     if (value == null || value.isEmpty) {
-      return 'Confirma tu contraseña';
+      return 'Confirm your password';
     }
     if (value != password) {
-      return 'Las contraseñas no coinciden';
+      return 'Passwords do not match';
     }
     return null;
   }
@@ -45,13 +45,13 @@ class Validators {
   /// Valida un nombre: mínimo 2 caracteres, solo letras y espacios.
   static String? name(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Este campo es requerido';
+      return 'This field is required';
     }
     if (value.trim().length < 2) {
-      return 'Mínimo 2 caracteres';
+      return 'Minimum 2 characters';
     }
     if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$').hasMatch(value.trim())) {
-      return 'Solo letras y espacios';
+      return 'Only letters and spaces';
     }
     return null;
   }
@@ -59,16 +59,16 @@ class Validators {
   /// Valida un username: 3-20 caracteres, alfanumérico + underscore.
   static String? username(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'El username es requerido';
+      return 'Username is required';
     }
     if (value.trim().length < 3) {
-      return 'Mínimo 3 caracteres';
+      return 'Minimum 3 characters';
     }
     if (value.trim().length > 20) {
-      return 'Máximo 20 caracteres';
+      return 'Maximum 20 characters';
     }
     if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value.trim())) {
-      return 'Solo letras, números y guión bajo';
+      return 'Only letters, numbers and underscore';
     }
     return null;
   }
