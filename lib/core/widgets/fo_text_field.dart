@@ -5,9 +5,8 @@ import '../theme/app_radius.dart';
 import '../theme/app_text_styles.dart';
 
 /// Campo de texto reutilizable de Finding Out.
-/// H: 56, borde #E5E7EB, radius 16, ícono izquierdo + placeholder.
-/// Soporta suffix (ej: ícono de ojo para contraseñas).
-class FoTextField extends StatelessWidget {
+/// H: 56, borde animado al focus con sombra sutil, radius 16.
+class FoTextField extends StatefulWidget {
   const FoTextField({
     super.key,
     this.controller,
@@ -40,29 +39,99 @@ class FoTextField extends StatelessWidget {
   final int? maxLength;
 
   @override
+  State<FoTextField> createState() => _FoTextFieldState();
+}
+
+class _FoTextFieldState extends State<FoTextField> {
+  late FocusNode _focusNode;
+  bool _ownsNode = false;
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.focusNode != null) {
+      _focusNode = widget.focusNode!;
+    } else {
+      _focusNode = FocusNode();
+      _ownsNode = true;
+    }
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(FoTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusNode != oldWidget.focusNode) {
+      _focusNode.removeListener(_onFocusChange);
+      if (_ownsNode) _focusNode.dispose();
+      if (widget.focusNode != null) {
+        _focusNode = widget.focusNode!;
+        _ownsNode = false;
+      } else {
+        _focusNode = FocusNode();
+        _ownsNode = true;
+      }
+      _focusNode.addListener(_onFocusChange);
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    if (_ownsNode) _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    setState(() => _isFocused = _focusNode.hasFocus);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
       height: 56,
+      decoration: BoxDecoration(
+        borderRadius: AppRadius.cardRadius,
+        boxShadow: _isFocused
+            ? [
+                BoxShadow(
+                  color: AppColors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : [],
+      ),
       child: TextFormField(
-        controller: controller,
-        obscureText: obscureText,
-        keyboardType: keyboardType,
-        onChanged: onChanged,
-        validator: validator,
-        enabled: enabled,
-        autofocus: autofocus,
-        textInputAction: textInputAction,
-        focusNode: focusNode,
-        maxLength: maxLength,
+        controller: widget.controller,
+        obscureText: widget.obscureText,
+        keyboardType: widget.keyboardType,
+        onChanged: widget.onChanged,
+        validator: widget.validator,
+        enabled: widget.enabled,
+        autofocus: widget.autofocus,
+        textInputAction: widget.textInputAction,
+        focusNode: _focusNode,
+        maxLength: widget.maxLength,
         style: AppTextStyles.inputText,
+        cursorColor: AppColors.black,
         decoration: InputDecoration(
-          hintText: hintText,
+          hintText: widget.hintText,
           hintStyle: AppTextStyles.inputHint,
           counterText: '',
-          prefixIcon: prefixIcon != null
-              ? Icon(prefixIcon, color: AppColors.placeholder, size: 20)
+          filled: true,
+          fillColor: AppColors.white,
+          prefixIcon: widget.prefixIcon != null
+              ? Icon(
+                  widget.prefixIcon,
+                  color: _isFocused ? AppColors.black : AppColors.placeholder,
+                  size: 20,
+                )
               : null,
-          suffixIcon: suffixIcon,
+          suffixIcon: widget.suffixIcon,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           enabledBorder: OutlineInputBorder(
@@ -81,6 +150,7 @@ class FoTextField extends StatelessWidget {
             borderRadius: AppRadius.cardRadius,
             borderSide: const BorderSide(color: AppColors.error, width: 1.5),
           ),
+          errorStyle: AppTextStyles.small.copyWith(color: AppColors.error),
         ),
       ),
     );
@@ -88,7 +158,6 @@ class FoTextField extends StatelessWidget {
 }
 
 /// Input con label arriba (gap: 8px).
-/// Combina un Text label + FoTextField.
 class FoLabeledInput extends StatelessWidget {
   const FoLabeledInput({
     super.key,

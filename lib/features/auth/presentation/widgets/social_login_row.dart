@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -6,14 +7,13 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
 /// Fila de 3 botones de login social (icon-only, same width).
-/// Diseño RT64G: sBtn1 = Facebook (lucide), sBtn2 = G (text), sBtn3 = Apple (lucide).
+/// Con splash ink effect y feedback háptico.
 class SocialLoginRow extends StatelessWidget {
   const SocialLoginRow({
     super.key,
     this.onGoogle,
     this.onApple,
     this.onFacebook,
-    // Mantener compatibilidad — onPhone queda por si se necesita
     this.onPhone,
     this.isGoogleLoading = false,
     this.isAppleLoading = false,
@@ -31,17 +31,28 @@ class SocialLoginRow extends StatelessWidget {
     required VoidCallback? onTap,
   }) {
     return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 56,
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: AppRadius.cardRadius,
-            border: Border.all(color: AppColors.inputBorder),
+      child: Material(
+        color: AppColors.white,
+        borderRadius: AppRadius.cardRadius,
+        child: InkWell(
+          onTap: onTap != null
+              ? () {
+                  HapticFeedback.selectionClick();
+                  onTap();
+                }
+              : null,
+          borderRadius: AppRadius.cardRadius,
+          splashColor: AppColors.gray100,
+          highlightColor: AppColors.gray50,
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.cardRadius,
+              border: Border.all(color: AppColors.inputBorder),
+            ),
+            alignment: Alignment.center,
+            child: child,
           ),
-          alignment: Alignment.center,
-          child: child,
         ),
       ),
     );
@@ -51,14 +62,12 @@ class SocialLoginRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // ─── Facebook ───
         _buildSocialButton(
-          child: const Icon(LucideIcons.facebook, size: 24, color: AppColors.black),
+          child: const Icon(LucideIcons.facebook,
+              size: 24, color: AppColors.black),
           onTap: onFacebook,
         ),
         const SizedBox(width: 16),
-
-        // ─── Google (letra G bold) ───
         _buildSocialButton(
           child: Text(
             'G',
@@ -70,10 +79,9 @@ class SocialLoginRow extends StatelessWidget {
           onTap: onGoogle,
         ),
         const SizedBox(width: 16),
-
-        // ─── Apple ───
         _buildSocialButton(
-          child: const Icon(LucideIcons.apple, size: 24, color: AppColors.black),
+          child:
+              const Icon(LucideIcons.apple, size: 24, color: AppColors.black),
           onTap: onApple,
         ),
       ],

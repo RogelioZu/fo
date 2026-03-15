@@ -5,13 +5,14 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
-/// Widget de input OTP de 4 dígitos para Finding Out.
-/// Cada dígito tiene su propio campo con auto-avance de focus.
+/// Widget de input OTP de 6 dígitos para Finding Out.
+/// Cada dígito tiene su propio campo con auto-avance de focus,
+/// sombra al focus y animación de relleno.
 class OtpInput extends StatefulWidget {
   const OtpInput({
     super.key,
     required this.onCompleted,
-    this.length = 4,
+    this.length = 6,
   });
 
   final ValueChanged<String> onCompleted;
@@ -32,7 +33,10 @@ class _OtpInputState extends State<OtpInput> {
         List.generate(widget.length, (_) => TextEditingController());
     _focusNodes = List.generate(widget.length, (_) => FocusNode());
 
-    // Auto-focus primer campo
+    for (final node in _focusNodes) {
+      node.addListener(() => setState(() {}));
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNodes[0].requestFocus();
     });
@@ -51,19 +55,18 @@ class _OtpInputState extends State<OtpInput> {
 
   void _onChanged(String value, int index) {
     if (value.length == 1) {
-      // Avanzar al siguiente campo
+      HapticFeedback.selectionClick();
       if (index < widget.length - 1) {
         _focusNodes[index + 1].requestFocus();
       } else {
-        // Último dígito → completar
         _focusNodes[index].unfocus();
         final code = _controllers.map((c) => c.text).join();
         if (code.length == widget.length) {
+          HapticFeedback.mediumImpact();
           widget.onCompleted(code);
         }
       }
     } else if (value.isEmpty && index > 0) {
-      // Si borra → retroceder al anterior
       _focusNodes[index - 1].requestFocus();
     }
   }
@@ -73,11 +76,29 @@ class _OtpInputState extends State<OtpInput> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(widget.length, (index) {
-        return Container(
-          width: 64,
-          height: 64,
+        final isFocused = _focusNodes[index].hasFocus;
+        final hasFill = _controllers[index].text.isNotEmpty;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          width: 48,
+          height: 56,
           margin: EdgeInsets.only(
-            right: index < widget.length - 1 ? 16 : 0,
+            right: index < widget.length - 1 ? 10 : 0,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.cardRadius,
+            color: hasFill ? AppColors.gray50 : AppColors.white,
+            boxShadow: isFocused
+                ? [
+                    BoxShadow(
+                      color: AppColors.black.withValues(alpha: 0.10),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
           ),
           child: TextField(
             controller: _controllers[index],
@@ -85,16 +106,21 @@ class _OtpInputState extends State<OtpInput> {
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             maxLength: 1,
-            style: AppTextStyles.heading2.copyWith(fontSize: 28),
+            style: AppTextStyles.heading2.copyWith(fontSize: 24),
+            cursorColor: AppColors.black,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
             ],
             decoration: InputDecoration(
               counterText: '',
               contentPadding: EdgeInsets.zero,
+              filled: true,
+              fillColor: Colors.transparent,
               enabledBorder: OutlineInputBorder(
                 borderRadius: AppRadius.cardRadius,
-                borderSide: const BorderSide(color: AppColors.inputBorder),
+                borderSide: BorderSide(
+                  color: hasFill ? AppColors.black : AppColors.inputBorder,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: AppRadius.cardRadius,

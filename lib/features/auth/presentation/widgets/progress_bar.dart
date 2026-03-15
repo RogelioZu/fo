@@ -5,7 +5,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
 /// Barra de progreso del setup wizard de Finding Out.
-/// Muestra "Step X of 6" y una barra animada.
+/// Muestra "Step X of 6" y una barra con animación suave.
 class ProgressBar extends StatelessWidget {
   const ProgressBar({
     super.key,
@@ -26,7 +26,6 @@ class ProgressBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ─── Step label ───
           Text(
             'Step $currentStep of $totalSteps',
             style: AppTextStyles.link.copyWith(
@@ -35,15 +34,35 @@ class ProgressBar extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
 
-          // ─── Bar ───
+          // Barra con animación
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: currentStep / totalSteps,
-              backgroundColor: AppColors.gray100,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.black),
-              minHeight: 4,
+            child: SizedBox(
+              height: 4,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Stack(
+                    children: [
+                      // Background
+                      Container(
+                        width: double.infinity,
+                        color: AppColors.gray100,
+                      ),
+                      // Foreground animado
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeOutCubic,
+                        width: constraints.maxWidth *
+                            (currentStep / totalSteps),
+                        decoration: BoxDecoration(
+                          color: AppColors.black,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ],

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../theme/app_colors.dart';
 
 /// Barra de navegación superior de Finding Out.
-/// Flecha de retroceso (lucide chevron-left) a la izquierda
-/// + ícono sparkles (lucide) a la derecha.
+/// Flecha de retroceso con splash circular y feedback háptico.
 class FoTopNav extends StatelessWidget {
   const FoTopNav({
     super.key,
@@ -23,20 +23,29 @@ class FoTopNav extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Flecha de retroceso — lucide: chevron-left
         if (showBackButton)
-          GestureDetector(
-            onTap: onBack ?? () => Navigator.of(context).maybePop(),
-            child: const Icon(
-              LucideIcons.chevronLeft,
-              color: AppColors.black,
-              size: 24,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                (onBack ?? () => Navigator.of(context).maybePop())();
+              },
+              customBorder: const CircleBorder(),
+              splashColor: AppColors.gray100,
+              child: const Padding(
+                padding: EdgeInsets.all(8),
+                child: Icon(
+                  LucideIcons.chevronLeft,
+                  color: AppColors.black,
+                  size: 24,
+                ),
+              ),
             ),
           )
         else
-          const SizedBox(width: 24),
+          const SizedBox(width: 40),
 
-        // Ícono sparkles — lucide: sparkles
         if (showSparkle)
           const Icon(
             LucideIcons.sparkles,
@@ -44,7 +53,7 @@ class FoTopNav extends StatelessWidget {
             size: 24,
           )
         else
-          const SizedBox(width: 24),
+          const SizedBox(width: 40),
       ],
     );
   }

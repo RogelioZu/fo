@@ -54,9 +54,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       } else {
         context.go('/home');
       }
-    } on EmailNotVerifiedException {
-      if (!mounted) return;
-      context.go('/verify-email?email=${Uri.encodeComponent(_emailController.text.trim())}');
     } on AppException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

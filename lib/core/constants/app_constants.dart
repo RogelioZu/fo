@@ -12,10 +12,10 @@ class AppConstants {
   static const int usernameDebounceMs = 500;
 
   /// Duración del timer de reenvío de OTP (segundos).
-  static const int otpResendTimerSec = 20;
+  static const int otpResendTimerSec = 40;
 
   /// Número de dígitos del código OTP.
-  static const int otpLength = 4;
+  static const int otpLength = 6;
 
   /// Categorías de intereses con su ícono Phosphor.
   static const List<Map<String, String>> interestCategories = [
