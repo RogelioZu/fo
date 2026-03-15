@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../../core/theme/app_colors.dart';
@@ -9,18 +11,21 @@ import '../../../../../core/theme/app_text_styles.dart';
 import '../../../../../core/utils/validators.dart';
 import '../../../../../core/widgets/fo_button.dart';
 import '../../../../../core/widgets/fo_text_field.dart';
+import '../../providers/auth_providers.dart';
+import '../../providers/profile_setup_provider.dart';
 import '../../widgets/progress_bar.dart';
 
 /// Pantalla de Setup Username — Step 2/6.
-/// Diseño: 3hpye — @username input con validación real-time.
-class SetupUsernameScreen extends StatefulWidget {
+/// Verifica disponibilidad real contra Supabase y guarda en ProfileSetupNotifier.
+class SetupUsernameScreen extends ConsumerStatefulWidget {
   const SetupUsernameScreen({super.key});
 
   @override
-  State<SetupUsernameScreen> createState() => _SetupUsernameScreenState();
+  ConsumerState<SetupUsernameScreen> createState() =>
+      _SetupUsernameScreenState();
 }
 
-class _SetupUsernameScreenState extends State<SetupUsernameScreen> {
+class _SetupUsernameScreenState extends ConsumerState<SetupUsernameScreen> {
   final _usernameController = TextEditingController();
   Timer? _debounce;
   bool? _isAvailable;
@@ -50,11 +55,13 @@ class _SetupUsernameScreenState extends State<SetupUsernameScreen> {
   Future<void> _checkUsername(String username) async {
     setState(() => _isChecking = true);
     try {
-      // TODO: conectar con provider → isUsernameAvailable
-      await Future.delayed(const Duration(milliseconds: 500)); // placeholder
+      final available = await ref
+          .read(authRepositoryProvider)
+          .isUsernameAvailable(username.toLowerCase());
+
       if (!mounted) return;
       setState(() {
-        _isAvailable = true; // placeholder
+        _isAvailable = available;
         _isChecking = false;
       });
     } catch (e) {
@@ -69,7 +76,12 @@ class _SetupUsernameScreenState extends State<SetupUsernameScreen> {
 
   void _onContinue() {
     if (_isAvailable != true) return;
-    // TODO: guardar en provider → navegar a /setup/birthday
+
+    ref.read(profileSetupProvider.notifier).setUsername(
+          _usernameController.text.trim().toLowerCase(),
+        );
+
+    context.go('/setup/birthday');
   }
 
   @override

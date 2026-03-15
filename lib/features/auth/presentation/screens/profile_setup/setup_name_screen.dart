@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../../core/theme/app_colors.dart';
@@ -7,18 +9,19 @@ import '../../../../../core/theme/app_text_styles.dart';
 import '../../../../../core/utils/validators.dart';
 import '../../../../../core/widgets/fo_button.dart';
 import '../../../../../core/widgets/fo_text_field.dart';
+import '../../providers/profile_setup_provider.dart';
 import '../../widgets/progress_bar.dart';
 
 /// Pantalla de Setup Nombre — Step 1/6.
-/// Diseño: 4unKf — First name + Last name inputs.
-class SetupNameScreen extends StatefulWidget {
+/// Guarda firstName y lastName en el ProfileSetupNotifier.
+class SetupNameScreen extends ConsumerStatefulWidget {
   const SetupNameScreen({super.key});
 
   @override
-  State<SetupNameScreen> createState() => _SetupNameScreenState();
+  ConsumerState<SetupNameScreen> createState() => _SetupNameScreenState();
 }
 
-class _SetupNameScreenState extends State<SetupNameScreen> {
+class _SetupNameScreenState extends ConsumerState<SetupNameScreen> {
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
@@ -32,7 +35,13 @@ class _SetupNameScreenState extends State<SetupNameScreen> {
 
   void _onContinue() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    // TODO: guardar en provider → navegar a /setup/username
+
+    ref.read(profileSetupProvider.notifier).setName(
+          _firstNameController.text.trim(),
+          _lastNameController.text.trim(),
+        );
+
+    context.go('/setup/username');
   }
 
   @override

@@ -66,13 +66,13 @@ class AuthRemoteDatasource {
     await _client.auth.signOut();
   }
 
-  /// Verificar OTP (email).
+  /// Verificar OTP (signup confirmation).
   Future<AppUser> verifyOtp(String email, String token) async {
     try {
       final response = await _client.auth.verifyOTP(
         email: email,
         token: token,
-        type: OtpType.email,
+        type: OtpType.signup,
       );
 
       if (response.user == null) {

@@ -1,43 +1,86 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../../../core/config/router.dart';
+import '../../../../../core/errors/exceptions.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/theme/app_text_styles.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/widgets/fo_button.dart';
+import '../../providers/profile_setup_provider.dart';
 import '../../widgets/progress_bar.dart';
 
 /// Pantalla de Setup Photo — Step 6/6.
-/// Diseño: j417q — avatar circle dashed, Camera + Gallery btns, Complete + Skip.
-class SetupPhotoScreen extends StatefulWidget {
+/// Usa ImagePicker para seleccionar foto, sube a Supabase Storage y marca perfil como completo.
+class SetupPhotoScreen extends ConsumerStatefulWidget {
   const SetupPhotoScreen({super.key});
 
   @override
-  State<SetupPhotoScreen> createState() => _SetupPhotoScreenState();
+  ConsumerState<SetupPhotoScreen> createState() => _SetupPhotoScreenState();
 }
 
-class _SetupPhotoScreenState extends State<SetupPhotoScreen> {
+class _SetupPhotoScreenState extends ConsumerState<SetupPhotoScreen> {
   String? _selectedImagePath;
   bool _isLoading = false;
+  final _picker = ImagePicker();
 
   Future<void> _onCamera() async {
-    // TODO: ImagePicker.camera → setState _selectedImagePath
+    final image = await _picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 80,
+    );
+    if (image != null) {
+      setState(() => _selectedImagePath = image.path);
+    }
   }
 
   Future<void> _onGallery() async {
-    // TODO: ImagePicker.gallery → setState _selectedImagePath
+    final image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 80,
+    );
+    if (image != null) {
+      setState(() => _selectedImagePath = image.path);
+    }
   }
 
   Future<void> _onCompleteSetup() async {
     setState(() => _isLoading = true);
     try {
-      // TODO: uploadAvatar → markProfileComplete → /home
-      await Future.delayed(const Duration(seconds: 1)); // placeholder
+      final notifier = ref.read(profileSetupProvider.notifier);
+
+      // Si hay avatar seleccionado, guardarlo en el estado
+      if (_selectedImagePath != null) {
+        notifier.setAvatarPath(_selectedImagePath!);
+      }
+
+      // Enviar todos los datos acumulados a Supabase
+      await notifier.submitAll();
+
+      // Invalidar cache del router para que reconozca profile_complete = true
+      AppRouter.invalidateProfileCache();
+
+      if (!mounted) return;
+      context.go('/home');
+    } on AppException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text('Error al completar: $e')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -45,7 +88,23 @@ class _SetupPhotoScreenState extends State<SetupPhotoScreen> {
   }
 
   Future<void> _onSkip() async {
-    // TODO: markProfileComplete (sin avatar) → /home
+    setState(() => _isLoading = true);
+    try {
+      // Enviar datos sin avatar
+      await ref.read(profileSetupProvider.notifier).submitAll();
+
+      AppRouter.invalidateProfileCache();
+
+      if (!mounted) return;
+      context.go('/home');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -89,15 +148,13 @@ class _SetupPhotoScreenState extends State<SetupPhotoScreen> {
                             border: Border.all(
                               color: AppColors.gray200,
                               width: 2,
-                              // En Flutter no hay dashed border nativo,
-                              // usamos borde sólido como fallback elegante
                             ),
                           ),
                           child: _selectedImagePath != null
                               ? ClipRRect(
                                   borderRadius: AppRadius.avatarRadius,
-                                  child: Image.asset(
-                                    _selectedImagePath!,
+                                  child: Image.file(
+                                    File(_selectedImagePath!),
                                     fit: BoxFit.cover,
                                   ),
                                 )
@@ -194,7 +251,7 @@ class _SetupPhotoScreenState extends State<SetupPhotoScreen> {
                     // ─── Skip for now ───
                     Center(
                       child: GestureDetector(
-                        onTap: _onSkip,
+                        onTap: _isLoading ? null : _onSkip,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Text(

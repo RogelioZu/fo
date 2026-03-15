@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -66,14 +67,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _onComplete() async {
     await _markOnboardingSeen();
     if (!mounted) return;
-    // TODO: reemplazar con context.go('/login') cuando GoRouter esté activo
-    Navigator.of(context).pushReplacementNamed('/login');
+    context.go('/login');
   }
 
   Future<void> _onSkip() async {
     await _markOnboardingSeen();
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed('/login');
+    context.go('/login');
   }
 
   @override

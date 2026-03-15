@@ -1,19 +1,23 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/fo_button.dart';
 import '../../../../core/widgets/fo_top_nav.dart';
+import '../providers/auth_providers.dart';
 import '../widgets/otp_input.dart';
 
 /// Pantalla de verificación de email de Finding Out.
-/// Diseño: 0rGb3 — 4-digit OTP, timer de reenvío.
-class VerifyEmailScreen extends StatefulWidget {
+/// Conecta con Supabase Auth vía authRepositoryProvider.verifyOtp.
+class VerifyEmailScreen extends ConsumerStatefulWidget {
   const VerifyEmailScreen({
     super.key,
     required this.email,
@@ -22,10 +26,10 @@ class VerifyEmailScreen extends StatefulWidget {
   final String email;
 
   @override
-  State<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
+  ConsumerState<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
 }
 
-class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
+class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   String _otpCode = '';
   bool _isLoading = false;
   int _resendTimer = AppConstants.otpResendTimerSec;
@@ -66,12 +70,24 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
     setState(() => _isLoading = true);
     try {
-      // TODO: conectar con auth provider → verifyOtp(widget.email, _otpCode)
-      await Future.delayed(const Duration(seconds: 1)); // placeholder
+      await ref.read(authRepositoryProvider).verifyOtp(
+            widget.email,
+            _otpCode,
+          );
+
+      if (!mounted) return;
+
+      // Email verificado → ir al setup de perfil
+      context.go('/setup/name');
+    } on AppException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text('Error inesperado: $e')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -81,12 +97,23 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   Future<void> _onResend() async {
     if (_resendTimer > 0) return;
     try {
-      // TODO: reenviar OTP
+      // Reenvía el OTP de confirmación de signup
+      final client = ref.read(supabaseClientProvider);
+      await client.auth.resend(
+        type: OtpType.signup,
+        email: widget.email,
+      );
+
       _startResendTimer();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Código reenviado a tu email')),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text('Error al reenviar: $e')),
       );
     }
   }

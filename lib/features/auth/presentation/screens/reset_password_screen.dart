@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -9,17 +11,19 @@ import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/fo_button.dart';
 import '../../../../core/widgets/fo_text_field.dart';
 import '../../../../core/widgets/fo_top_nav.dart';
+import '../providers/auth_providers.dart';
 
 /// Pantalla de restablecer contraseña de Finding Out.
-/// Diseño: Rduuy — new password + confirm con eye toggles.
-class ResetPasswordScreen extends StatefulWidget {
+/// Conecta con Supabase Auth vía authRepositoryProvider.resetPassword.
+class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key});
 
   @override
-  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+  ConsumerState<ResetPasswordScreen> createState() =>
+      _ResetPasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -39,17 +43,24 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     setState(() => _isLoading = true);
     try {
-      // TODO: conectar con auth provider → resetPassword
-      await Future.delayed(const Duration(seconds: 1)); // placeholder
+      await ref.read(authRepositoryProvider).resetPassword(
+            _passwordController.text,
+          );
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Contraseña restablecida exitosamente')),
       );
       context.go('/login');
+    } on AppException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text('Error inesperado: $e')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

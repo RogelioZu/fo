@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/fo_button.dart';
 import '../../../../core/widgets/fo_text_field.dart';
 import '../../../../core/widgets/fo_top_nav.dart';
+import '../providers/auth_providers.dart';
 import '../widgets/social_login_row.dart';
 
 /// Pantalla de Login de Finding Out.
-/// Diseño: RT64G — email + password (sin prefix icons), social buttons, forgot password link.
-class LoginScreen extends StatefulWidget {
+/// Conecta con Supabase Auth vía authRepositoryProvider.
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -38,12 +41,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      // TODO: conectar con auth provider en Paso 14
-      await Future.delayed(const Duration(seconds: 1)); // placeholder
+      final user = await ref.read(authRepositoryProvider).signInWithEmail(
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
+
+      if (!mounted) return;
+
+      // Si el perfil no está completo → ir a setup
+      if (!user.profileComplete) {
+        context.go('/setup/name');
+      } else {
+        context.go('/home');
+      }
+    } on EmailNotVerifiedException {
+      if (!mounted) return;
+      context.go('/verify-email?email=${Uri.encodeComponent(_emailController.text.trim())}');
+    } on AppException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text('Error inesperado: $e')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -84,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text('Log in', style: AppTextStyles.heading1),
                     const SizedBox(height: AppSpacing.lg),
 
-                    // ─── Email (sin prefix icon, como en el diseño) ───
+                    // ─── Email ───
                     FoLabeledInput(
                       label: 'Email address',
                       hintText: 'hello@example.com',
@@ -167,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: AppSpacing.lg),
 
-                    // ─── Social Buttons (Facebook, G, Apple) ───
+                    // ─── Social Buttons ───
                     SocialLoginRow(
                       onFacebook: () {
                         // TODO: Facebook login

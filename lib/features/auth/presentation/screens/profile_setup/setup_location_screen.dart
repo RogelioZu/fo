@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../../core/theme/app_colors.dart';
@@ -7,21 +11,27 @@ import '../../../../../core/theme/app_text_styles.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/widgets/fo_button.dart';
 import '../../../../../core/widgets/fo_text_field.dart';
+import '../../providers/profile_setup_provider.dart';
 import '../../widgets/progress_bar.dart';
 
 /// Pantalla de Setup Location — Step 4/6.
-/// Diseño: z2qVf — GPS button + manual search input.
-class SetupLocationScreen extends StatefulWidget {
+/// Usa Geolocator + Geocoding para obtener ubicación real.
+class SetupLocationScreen extends ConsumerStatefulWidget {
   const SetupLocationScreen({super.key});
 
   @override
-  State<SetupLocationScreen> createState() => _SetupLocationScreenState();
+  ConsumerState<SetupLocationScreen> createState() =>
+      _SetupLocationScreenState();
 }
 
-class _SetupLocationScreenState extends State<SetupLocationScreen> {
+class _SetupLocationScreenState extends ConsumerState<SetupLocationScreen> {
   final _searchController = TextEditingController();
   bool _isLoadingGps = false;
   String? _selectedLocation;
+  double? _lat;
+  double? _lng;
+  String? _city;
+  String? _country;
 
   @override
   void dispose() {
@@ -32,13 +42,54 @@ class _SetupLocationScreenState extends State<SetupLocationScreen> {
   Future<void> _onUseGps() async {
     setState(() => _isLoadingGps = true);
     try {
-      // TODO: conectar con geolocator + geocoding
-      await Future.delayed(const Duration(seconds: 1)); // placeholder
+      // Verificar permisos de ubicación
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Permiso de ubicación denegado');
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception(
+            'Permiso de ubicación denegado permanentemente. Habilítalo en Ajustes.');
+      }
+
+      // Obtener posición actual
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+
+      // Geocodificación inversa para obtener ciudad y país
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
       if (!mounted) return;
-      setState(() {
-        _selectedLocation = 'Monterrey, Mexico'; // placeholder
-        _isLoadingGps = false;
-      });
+
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        setState(() {
+          _city = place.locality ?? place.subAdministrativeArea ?? '';
+          _country = place.country ?? '';
+          _lat = position.latitude;
+          _lng = position.longitude;
+          _selectedLocation = '$_city, $_country';
+          _isLoadingGps = false;
+        });
+      } else {
+        setState(() {
+          _lat = position.latitude;
+          _lng = position.longitude;
+          _selectedLocation = '${position.latitude.toStringAsFixed(2)}, ${position.longitude.toStringAsFixed(2)}';
+          _isLoadingGps = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingGps = false);
@@ -50,10 +101,18 @@ class _SetupLocationScreenState extends State<SetupLocationScreen> {
   }
 
   void _onContinue() {
-    if (_selectedLocation == null && _searchController.text.trim().isEmpty) {
-      return;
-    }
-    // TODO: guardar en provider → navegar a /setup/interests
+    // Usar GPS o texto manual
+    final locationText = _selectedLocation ?? _searchController.text.trim();
+    if (locationText.isEmpty) return;
+
+    ref.read(profileSetupProvider.notifier).setLocation(
+          city: _city ?? locationText,
+          country: _country ?? '',
+          lat: _lat,
+          lng: _lng,
+        );
+
+    context.go('/setup/interests');
   }
 
   @override
@@ -149,6 +208,7 @@ class _SetupLocationScreenState extends State<SetupLocationScreen> {
                       prefixIcon: PhosphorIconsRegular.magnifyingGlass,
                       controller: _searchController,
                       textInputAction: TextInputAction.search,
+                      onChanged: (_) => setState(() {}),
                     ),
 
                     const Spacer(),

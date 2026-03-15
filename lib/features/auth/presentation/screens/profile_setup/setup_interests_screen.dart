@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../../core/constants/app_constants.dart';
@@ -6,19 +8,21 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/theme/app_text_styles.dart';
 import '../../../../../core/widgets/fo_button.dart';
+import '../../providers/profile_setup_provider.dart';
 import '../../widgets/interest_chip.dart';
 import '../../widgets/progress_bar.dart';
 
 /// Pantalla de Setup Interests — Step 5/6.
-/// Diseño: eYJrO — 16 chips categorías, counter, minimum 3.
-class SetupInterestsScreen extends StatefulWidget {
+/// Guarda los intereses seleccionados en ProfileSetupNotifier.
+class SetupInterestsScreen extends ConsumerStatefulWidget {
   const SetupInterestsScreen({super.key});
 
   @override
-  State<SetupInterestsScreen> createState() => _SetupInterestsScreenState();
+  ConsumerState<SetupInterestsScreen> createState() =>
+      _SetupInterestsScreenState();
 }
 
-class _SetupInterestsScreenState extends State<SetupInterestsScreen> {
+class _SetupInterestsScreenState extends ConsumerState<SetupInterestsScreen> {
   final Set<String> _selectedIds = {};
 
   /// Mapeo de nombre de ícono (String) a IconData de Phosphor.
@@ -53,7 +57,12 @@ class _SetupInterestsScreenState extends State<SetupInterestsScreen> {
 
   void _onContinue() {
     if (_selectedIds.length < AppConstants.minInterests) return;
-    // TODO: guardar en provider → navegar a /setup/photo
+
+    ref.read(profileSetupProvider.notifier).setInterests(
+          _selectedIds.toList(),
+        );
+
+    context.go('/setup/photo');
   }
 
   @override

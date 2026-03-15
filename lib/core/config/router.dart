@@ -26,6 +26,9 @@ class AppRouter {
 
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
+  // Cache del estado de profile_complete para evitar queries repetidas.
+  static bool? _cachedProfileComplete;
+
   /// Crea el GoRouter con lógica de redirect.
   static GoRouter router(SharedPreferences prefs) {
     return GoRouter(
@@ -33,7 +36,30 @@ class AppRouter {
       initialLocation: '/splash',
       routes: _routes,
       redirect: (context, state) => _redirect(state, prefs),
+      errorBuilder: (context, state) => Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Ruta no encontrada: ${state.uri.path}'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => GoRouter.of(context).go('/splash'),
+                child: const Text('Ir al inicio'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+  }
+
+  /// Invalida el cache de profile_complete (llamar tras completar el setup).
+  static void invalidateProfileCache() {
+    _cachedProfileComplete = null;
   }
 
   // ─── Rutas ───
@@ -134,7 +160,8 @@ class AppRouter {
     '/setup/photo',
   ];
 
-  static String? _redirect(GoRouterState state, SharedPreferences prefs) {
+  static Future<String?> _redirect(
+      GoRouterState state, SharedPreferences prefs) async {
     final currentPath = state.uri.path;
     final session = Supabase.instance.client.auth.currentSession;
     final hasSeenOnboarding =
@@ -143,11 +170,15 @@ class AppRouter {
     final isOnSplash = currentPath == '/splash';
     final isOnOnboarding = currentPath == '/onboarding';
     final isOnAuthRoute = _authRoutes.contains(currentPath);
-    // ignore: unused_local_variable
     final isOnSetupRoute = _setupRoutes.contains(currentPath);
 
-    // 1. Si no ha visto onboarding → mandarlo ahí (excepto auth routes y splash)
-    if (!hasSeenOnboarding && !isOnOnboarding && !isOnSplash && !isOnAuthRoute) {
+    // 1. Si no ha visto onboarding Y no tiene sesión → mandarlo ahí
+    //    (si ya tiene sesión, no necesita onboarding)
+    if (!hasSeenOnboarding &&
+        session == null &&
+        !isOnOnboarding &&
+        !isOnSplash &&
+        !isOnAuthRoute) {
       return '/onboarding';
     }
 
@@ -156,13 +187,50 @@ class AppRouter {
       return '/login';
     }
 
-    // 3. Si hay sesión y está en ruta de auth → verificar perfil
-    if (session != null && (isOnAuthRoute || isOnSplash || isOnOnboarding)) {
-      // TODO: verificar profile_complete desde Supabase
-      // Por ahora redirige a /home
-      return '/home';
+    // 3. Si hay sesión y está en ruta de auth, splash u onboarding → verificar perfil
+    //    Excepción: /verify-email debe ser accesible con sesión (email aún no confirmado)
+    if (session != null &&
+        (isOnAuthRoute || isOnSplash || isOnOnboarding) &&
+        currentPath != '/verify-email') {
+      final profileComplete = await _isProfileComplete();
+      if (profileComplete) {
+        return '/home';
+      } else {
+        return '/setup/name';
+      }
+    }
+
+    // 4. Si hay sesión, perfil no completo, y está en /home → mandarlo a setup
+    if (session != null && !isOnSetupRoute && currentPath == '/home') {
+      final profileComplete = await _isProfileComplete();
+      if (!profileComplete) {
+        return '/setup/name';
+      }
     }
 
     return null; // Sin redirect
+  }
+
+  /// Verifica si el perfil del usuario actual está completo.
+  static Future<bool> _isProfileComplete() async {
+    // Usar cache si existe
+    if (_cachedProfileComplete != null) return _cachedProfileComplete!;
+
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return false;
+
+      final data = await Supabase.instance.client
+          .from('profiles')
+          .select('profile_complete')
+          .eq('id', userId)
+          .maybeSingle();
+
+      _cachedProfileComplete = (data?['profile_complete'] as bool?) ?? false;
+      return _cachedProfileComplete!;
+    } catch (e) {
+      debugPrint('Error checking profile_complete: $e');
+      return false;
+    }
   }
 }

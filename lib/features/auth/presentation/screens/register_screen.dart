@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -9,17 +11,18 @@ import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/fo_button.dart';
 import '../../../../core/widgets/fo_text_field.dart';
 import '../../../../core/widgets/fo_top_nav.dart';
+import '../providers/auth_providers.dart';
 
 /// Pantalla de Registro de Finding Out.
-/// Diseño: LxKqO — email + create password + confirm password, eye toggles.
-class RegisterScreen extends StatefulWidget {
+/// Conecta con Supabase Auth vía authRepositoryProvider.
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -41,12 +44,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
     try {
-      // TODO: conectar con auth provider en Paso 14
-      await Future.delayed(const Duration(seconds: 1)); // placeholder
+      await ref.read(authRepositoryProvider).signUpWithEmail(
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
+
+      if (!mounted) return;
+
+      // Navegar a verificación de email
+      context.go('/verify-email?email=${Uri.encodeComponent(_emailController.text.trim())}');
+    } on AppException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text('Error inesperado: $e')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -87,7 +102,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Text('Sign up', style: AppTextStyles.heading1),
                     const SizedBox(height: AppSpacing.lg),
 
-                    // ─── Email (sin prefix icon) ───
+                    // ─── Email ───
                     FoLabeledInput(
                       label: 'Email address',
                       hintText: 'hello@example.com',
@@ -167,9 +182,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: AppSpacing.lg),
 
-                    // ─── Register Button (text says "Log in" per design) ───
+                    // ─── Register Button (fix: decía "Log in", ahora dice "Sign up") ───
                     FoButton(
-                      text: 'Log in',
+                      text: 'Sign up',
                       onPressed: _onRegister,
                       isLoading: _isLoading,
                     ),

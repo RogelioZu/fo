@@ -1,27 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/theme/app_text_styles.dart';
 import '../../../../../core/widgets/fo_button.dart';
+import '../../providers/profile_setup_provider.dart';
 import '../../widgets/progress_bar.dart';
 import '../../widgets/date_selector.dart';
 
 /// Pantalla de Setup Birthday — Step 3/6.
-/// Diseño: xzvWp — 3 dropdowns (Month, Day, Year).
-class SetupBirthdayScreen extends StatefulWidget {
+/// Guarda la fecha de nacimiento en ProfileSetupNotifier.
+class SetupBirthdayScreen extends ConsumerStatefulWidget {
   const SetupBirthdayScreen({super.key});
 
   @override
-  State<SetupBirthdayScreen> createState() => _SetupBirthdayScreenState();
+  ConsumerState<SetupBirthdayScreen> createState() =>
+      _SetupBirthdayScreenState();
 }
 
-class _SetupBirthdayScreenState extends State<SetupBirthdayScreen> {
+class _SetupBirthdayScreenState extends ConsumerState<SetupBirthdayScreen> {
   DateTime? _selectedDate;
 
   void _onContinue() {
     if (_selectedDate == null) return;
-    // TODO: guardar en provider → navegar a /setup/location
+
+    ref.read(profileSetupProvider.notifier).setBirthday(_selectedDate!);
+    context.go('/setup/location');
   }
 
   @override
