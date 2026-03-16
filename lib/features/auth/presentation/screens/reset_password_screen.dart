@@ -60,7 +60,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error inesperado: $e')),
+        const SnackBar(content: Text('Ocurrió un error inesperado. Intenta de nuevo.')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

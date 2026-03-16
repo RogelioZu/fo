@@ -51,6 +51,7 @@ abstract class AuthRepository {
     String? country,
     double? lat,
     double? lng,
+    String? bio,
   });
 
   /// Verifica si un nombre de usuario está disponible.

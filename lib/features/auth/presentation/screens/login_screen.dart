@@ -7,9 +7,11 @@ import '../../../../core/errors/exceptions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/fo_button.dart';
 import '../../../../core/widgets/fo_text_field.dart';
 import '../../../../core/widgets/fo_top_nav.dart';
+import '../../../../core/services/location_service.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/social_login_row.dart';
 
@@ -36,6 +38,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  void _updateLocationInBackground() {
+    LocationService.requestAndResolveLocation().then((loc) {
+      if (loc != null) {
+        ref.read(authRepositoryProvider).updateProfile(
+              lat: loc.lat,
+              lng: loc.lng,
+              city: loc.city,
+              country: loc.country,
+            );
+      }
+    });
+  }
+
   Future<void> _onLogin() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
@@ -52,6 +67,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!user.profileComplete) {
         context.go('/setup/name');
       } else {
+        // Request location and update profile in background
+        _updateLocationInBackground();
         context.go('/home');
       }
     } on AppException catch (e) {
@@ -62,7 +79,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error inesperado: $e')),
+        const SnackBar(content: Text('Ocurrió un error inesperado. Intenta de nuevo.')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -110,6 +127,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
+                      validator: Validators.email,
                     ),
                     const SizedBox(height: AppSpacing.md),
 

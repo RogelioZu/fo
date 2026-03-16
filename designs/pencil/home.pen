@@ -330,23 +330,60 @@
               "id": "TKZCA",
               "name": "AppBar",
               "width": "fill_container",
-              "height": 64,
               "padding": [
-                0,
+                16,
+                24,
+                8,
                 24
               ],
               "justifyContent": "space_between",
               "alignItems": "center",
               "children": [
                 {
-                  "type": "text",
-                  "id": "83jEl",
-                  "name": "title",
-                  "fill": "#000000",
-                  "content": "Finding Out",
-                  "fontFamily": "Inter",
-                  "fontSize": 24,
-                  "fontWeight": "800"
+                  "type": "frame",
+                  "id": "bdGUw",
+                  "name": "TitleCol",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "83jEl",
+                      "name": "title",
+                      "fill": "#000000",
+                      "content": "Finding Out",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QFUhC",
+                      "name": "location",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "kBeTx",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "map-pin",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3B82F6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "kHBLI",
+                          "fill": "#3B82F6",
+                          "content": "Madrid, Spain",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
                 },
                 {
                   "type": "icon_font",
@@ -423,7 +460,7 @@
               "ref": "juyjI",
               "name": "FeaturedSection",
               "height": "fit_content",
-              "y": 270,
+              "y": 278,
               "descendants": {
                 "6vmfo": {
                   "width": "fill_container",
@@ -535,7 +572,7 @@
               "ref": "juyjI",
               "name": "NearYouSection",
               "height": "fit_content",
-              "y": 654,
+              "y": 662,
               "descendants": {
                 "6vmfo": {
                   "width": "fill_container",
@@ -661,7 +698,7 @@
               "ref": "juyjI",
               "name": "MusicSection",
               "height": "fit_content",
-              "y": 1038,
+              "y": 1046,
               "descendants": {
                 "6vmfo": {
                   "width": "fill_container",
@@ -887,6 +924,40 @@
                       "name": "lbl",
                       "fill": "#6B7280",
                       "content": "SEARCH",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "s1FPB",
+                  "name": "MapTab",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "cornerRadius": 27,
+                  "layout": "vertical",
+                  "gap": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "9DOhu",
+                      "name": "ic",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "map",
+                      "iconFontFamily": "lucide",
+                      "fill": "#6B7280"
+                    },
+                    {
+                      "type": "text",
+                      "id": "H8v0p",
+                      "name": "lbl",
+                      "fill": "#6B7280",
+                      "content": "MAP",
                       "fontFamily": "Inter",
                       "fontSize": 10,
                       "fontWeight": "700"

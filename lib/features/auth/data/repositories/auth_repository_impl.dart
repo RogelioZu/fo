@@ -68,6 +68,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String? country,
     double? lat,
     double? lng,
+    String? bio,
   }) =>
       _datasource.updateProfile(
         firstName: firstName,
@@ -78,6 +79,7 @@ class AuthRepositoryImpl implements AuthRepository {
         country: country,
         lat: lat,
         lng: lng,
+        bio: bio,
       );
 
   @override

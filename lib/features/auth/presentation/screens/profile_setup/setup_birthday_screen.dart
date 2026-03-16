@@ -23,8 +23,27 @@ class SetupBirthdayScreen extends ConsumerStatefulWidget {
 class _SetupBirthdayScreenState extends ConsumerState<SetupBirthdayScreen> {
   DateTime? _selectedDate;
 
+  static const _minimumAge = 13;
+
+  bool _isOldEnough(DateTime date) {
+    final now = DateTime.now();
+    int age = now.year - date.year;
+    if (now.month < date.month ||
+        (now.month == date.month && now.day < date.day)) {
+      age--;
+    }
+    return age >= _minimumAge;
+  }
+
   void _onContinue() {
     if (_selectedDate == null) return;
+
+    if (!_isOldEnough(_selectedDate!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be at least 13 years old')),
+      );
+      return;
+    }
 
     ref.read(profileSetupProvider.notifier).setBirthday(_selectedDate!);
     context.go('/setup/location');

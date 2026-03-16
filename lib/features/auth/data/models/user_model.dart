@@ -14,6 +14,7 @@ class UserModel extends AppUser {
     super.country,
     super.lat,
     super.lng,
+    super.bio,
     super.interests = const [],
     super.profileComplete = false,
     required super.createdAt,
@@ -35,6 +36,7 @@ class UserModel extends AppUser {
       country: json['country'] as String?,
       lat: (json['lat'] as num?)?.toDouble(),
       lng: (json['lng'] as num?)?.toDouble(),
+      bio: json['bio'] as String?,
       interests: (json['interests'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
@@ -60,6 +62,7 @@ class UserModel extends AppUser {
       'country': country,
       'lat': lat,
       'lng': lng,
+      'bio': bio,
       'interests': interests,
       'profile_complete': profileComplete,
     };

@@ -16,6 +16,8 @@ import '../../features/auth/presentation/screens/profile_setup/setup_birthday_sc
 import '../../features/auth/presentation/screens/profile_setup/setup_location_screen.dart';
 import '../../features/auth/presentation/screens/profile_setup/setup_interests_screen.dart';
 import '../../features/auth/presentation/screens/profile_setup/setup_photo_screen.dart';
+import '../../features/home/presentation/screens/main_shell.dart';
+import '../../features/home/presentation/screens/edit_profile_screen.dart';
 
 import '../constants/app_constants.dart';
 
@@ -135,9 +137,12 @@ class AppRouter {
     GoRoute(
       path: '/home',
       name: 'home',
-      builder: (context, state) => const Scaffold(
-        body: Center(child: Text('Home — TODO')),
-      ),
+      builder: (context, state) => const MainShell(),
+    ),
+    GoRoute(
+      path: '/edit-profile',
+      name: 'edit-profile',
+      builder: (context, state) => const EditProfileScreen(),
     ),
   ];
 

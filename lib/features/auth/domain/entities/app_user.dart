@@ -13,6 +13,7 @@ class AppUser extends Equatable {
   final String? country;
   final double? lat;
   final double? lng;
+  final String? bio;
   final List<String> interests;
   final bool profileComplete;
   final DateTime createdAt;
@@ -29,6 +30,7 @@ class AppUser extends Equatable {
     this.country,
     this.lat,
     this.lng,
+    this.bio,
     this.interests = const [],
     this.profileComplete = false,
     required this.createdAt,
@@ -51,6 +53,7 @@ class AppUser extends Equatable {
     String? country,
     double? lat,
     double? lng,
+    String? bio,
     List<String>? interests,
     bool? profileComplete,
     DateTime? createdAt,
@@ -67,6 +70,7 @@ class AppUser extends Equatable {
       country: country ?? this.country,
       lat: lat ?? this.lat,
       lng: lng ?? this.lng,
+      bio: bio ?? this.bio,
       interests: interests ?? this.interests,
       profileComplete: profileComplete ?? this.profileComplete,
       createdAt: createdAt ?? this.createdAt,
@@ -86,6 +90,7 @@ class AppUser extends Equatable {
         country,
         lat,
         lng,
+        bio,
         interests,
         profileComplete,
         createdAt,

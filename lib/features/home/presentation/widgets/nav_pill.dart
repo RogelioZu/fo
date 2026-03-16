@@ -1,0 +1,97 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+
+import '../../../../core/theme/app_colors.dart';
+
+/// Barra de navegación flotante tipo pill de Finding Out.
+/// Tres tabs: Home, Search, Profile. El tab activo se pinta negro.
+class NavPill extends StatelessWidget {
+  const NavPill({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  static const _tabs = [
+    _NavTab(icon: LucideIcons.home, label: 'HOME'),
+    _NavTab(icon: LucideIcons.search, label: 'SEARCH'),
+    _NavTab(icon: LucideIcons.map, label: 'MAP'),
+    _NavTab(icon: LucideIcons.user, label: 'PROFILE'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+      child: Container(
+        height: 62,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(31),
+          border: Border.all(color: AppColors.gray200, width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A000000),
+              offset: Offset(0, 4),
+              blurRadius: 20,
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          children: List.generate(_tabs.length, (i) {
+            final tab = _tabs[i];
+            final isActive = i == currentIndex;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onTap(i);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  decoration: BoxDecoration(
+                    color: isActive ? AppColors.black : Colors.transparent,
+                    borderRadius: BorderRadius.circular(27),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        tab.icon,
+                        size: 18,
+                        color: isActive ? AppColors.white : AppColors.gray500,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        tab.label,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color:
+                              isActive ? AppColors.white : AppColors.gray500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavTab {
+  const _NavTab({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+}

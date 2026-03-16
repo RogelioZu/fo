@@ -129,6 +129,7 @@ class AuthRemoteDatasource {
     String? country,
     double? lat,
     double? lng,
+    String? bio,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw const InvalidCredentialsException();
@@ -142,6 +143,7 @@ class AuthRemoteDatasource {
     if (country != null) updates['country'] = country;
     if (lat != null) updates['lat'] = lat;
     if (lng != null) updates['lng'] = lng;
+    if (bio != null) updates['bio'] = bio;
 
     if (updates.isEmpty) return;
 
@@ -174,12 +176,17 @@ class AuthRemoteDatasource {
         .eq('id', userId);
   }
 
+  static const _allowedImageExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+
   /// Subir avatar y retornar URL pública.
   Future<String> uploadAvatar(String filePath) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw const InvalidCredentialsException();
 
-    final fileExt = filePath.split('.').last;
+    final fileExt = filePath.split('.').last.toLowerCase();
+    if (!_allowedImageExtensions.contains(fileExt)) {
+      throw const UnknownException('Formato de imagen no soportado. Usa JPG, PNG o WEBP.');
+    }
     final path = '$userId/avatar.$fileExt';
     final file = File(filePath);
     final bytes = await file.readAsBytes();
@@ -190,7 +197,9 @@ class AuthRemoteDatasource {
       fileOptions: const FileOptions(upsert: true),
     );
 
-    final publicUrl = _client.storage.from('avatars').getPublicUrl(path);
+    final baseUrl = _client.storage.from('avatars').getPublicUrl(path);
+    // Cache-buster para que CachedNetworkImage detecte el cambio
+    final publicUrl = '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}';
 
     // Guardar URL en el perfil
     await _client
@@ -243,7 +252,7 @@ class AuthRemoteDatasource {
   /// Mapea AuthException de Supabase a excepciones tipadas.
   AppException _mapAuthException(AuthException e) {
     final msg = e.message.toLowerCase();
-    debugPrint('AuthException: ${e.message} | statusCode: ${e.statusCode}');
+    debugPrint('AuthException: statusCode=${e.statusCode}');
 
     if (msg.contains('invalid login credentials') ||
         msg.contains('invalid_credentials')) {
