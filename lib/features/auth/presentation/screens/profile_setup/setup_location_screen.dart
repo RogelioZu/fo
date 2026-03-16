@@ -42,7 +42,14 @@ class _SetupLocationScreenState extends ConsumerState<SetupLocationScreen> {
   Future<void> _onUseGps() async {
     setState(() => _isLoadingGps = true);
     try {
-      // Verificar permisos de ubicación
+      // 1. Verificar que el servicio de ubicación esté habilitado
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw Exception(
+            'El servicio de ubicación está desactivado. Actívalo en Ajustes.');
+      }
+
+      // 2. Verificar permisos de ubicación
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -52,15 +59,39 @@ class _SetupLocationScreenState extends ConsumerState<SetupLocationScreen> {
       }
 
       if (permission == LocationPermission.deniedForever) {
-        throw Exception(
-            'Permiso de ubicación denegado permanentemente. Habilítalo en Ajustes.');
+        if (!mounted) return;
+        setState(() => _isLoadingGps = false);
+        final openSettings = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Permiso requerido'),
+            content: const Text(
+              'El permiso de ubicación fue denegado permanentemente. '
+              '¿Deseas abrir los ajustes para habilitarlo?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Abrir Ajustes'),
+              ),
+            ],
+          ),
+        );
+        if (openSettings == true) {
+          await Geolocator.openAppSettings();
+        }
+        return;
       }
 
-      // Obtener posición actual
+      // 3. Obtener posición actual
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 10),
+          timeLimit: Duration(seconds: 15),
         ),
       );
 
