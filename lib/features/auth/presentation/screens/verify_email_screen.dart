@@ -12,6 +12,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/fo_button.dart';
 import '../../../../core/widgets/fo_top_nav.dart';
+import '../../../../core/config/router.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/otp_input.dart';
 
@@ -76,6 +77,9 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
           );
 
       if (!mounted) return;
+
+      // Invalidar cache para que el router use el perfil del nuevo usuario
+      AppRouter.invalidateProfileCache();
 
       // Email verificado → ir al setup de perfil
       context.go('/setup/name');

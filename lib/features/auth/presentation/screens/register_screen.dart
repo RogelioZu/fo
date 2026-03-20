@@ -11,6 +11,7 @@ import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/fo_button.dart';
 import '../../../../core/widgets/fo_text_field.dart';
 import '../../../../core/widgets/fo_top_nav.dart';
+import '../../../../core/config/router.dart';
 import '../providers/auth_providers.dart';
 
 /// Pantalla de Registro de Finding Out.
@@ -44,6 +45,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     setState(() => _isLoading = true);
     try {
+      // Invalidar cache de perfil para evitar que se use el de una sesión anterior
+      AppRouter.invalidateProfileCache();
+
       await ref.read(authRepositoryProvider).signUpWithEmail(
             _emailController.text.trim(),
             _passwordController.text,

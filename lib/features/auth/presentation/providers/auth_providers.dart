@@ -31,7 +31,12 @@ final authStateProvider = StreamProvider<AuthState>((ref) {
 });
 
 /// Provider del usuario actual (con datos de perfil).
+/// Escucha authStateProvider para invalidarse automáticamente
+/// cuando cambia la sesión (login, logout, signup, etc.).
 final currentUserProvider = FutureProvider<AppUser?>((ref) async {
+  // Watchear el estado de auth para re-evaluar cuando cambie la sesión
+  ref.watch(authStateProvider);
+
   final client = ref.read(supabaseClientProvider);
   if (client.auth.currentUser == null) return null;
   return ref.read(authRepositoryProvider).getCurrentUser();

@@ -40,6 +40,11 @@ class AuthRemoteDatasource {
   /// Registro con email y contraseña.
   Future<AppUser> signUpWithEmail(String email, String password) async {
     try {
+      // Cerrar cualquier sesión previa para evitar conflictos de auth
+      if (_client.auth.currentSession != null) {
+        await _client.auth.signOut();
+      }
+
       final response = await _client.auth.signUp(
         email: email,
         password: password,
@@ -47,6 +52,13 @@ class AuthRemoteDatasource {
 
       if (response.user == null) {
         throw const UnknownException('Error al crear la cuenta.');
+      }
+
+      // Supabase con email confirmation no lanza error si el email ya existe,
+      // retorna un usuario sin identidades. Detectar ese caso.
+      final identities = response.user!.identities;
+      if (identities == null || identities.isEmpty) {
+        throw const EmailAlreadyInUseException();
       }
 
       // El trigger handle_new_user() crea el perfil automáticamente
