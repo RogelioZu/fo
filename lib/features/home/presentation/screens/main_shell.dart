@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../widgets/nav_pill.dart';
 import 'home_screen.dart';
+import 'map_screen.dart';
 import 'profile_screen.dart';
 
 /// Shell principal con navegación por tabs (Home, Search, Profile).
@@ -22,10 +23,7 @@ class _MainShellState extends State<MainShell> {
       backgroundColor: Colors.white,
       body: Center(child: Text('Search — TODO')),
     ),
-    const Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(child: Text('Map — TODO')),
-    ),
+    const MapScreen(),
     const ProfileScreen(),
   ];
 
