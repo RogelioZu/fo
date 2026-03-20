@@ -13,10 +13,13 @@ void main() async {
   // Cargar variables de entorno desde .env
   await dotenv.load(fileName: '.env');
 
-  // Inicializar Supabase
+  // Inicializar Supabase con PKCE para deep links seguros
   await Supabase.initialize(
     url: Env.supabaseUrl,
     anonKey: Env.supabaseAnonKey,
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.pkce,
+    ),
   );
 
   // Inicializar SharedPreferences

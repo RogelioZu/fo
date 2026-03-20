@@ -196,7 +196,8 @@ class AppRouter {
     //    Excepción: /verify-email debe ser accesible con sesión (email aún no confirmado)
     if (session != null &&
         (isOnAuthRoute || isOnSplash || isOnOnboarding) &&
-        currentPath != '/verify-email') {
+        currentPath != '/verify-email' &&
+        currentPath != '/reset-password') {
       final profileComplete = await _isProfileComplete();
       if (profileComplete) {
         return '/home';

@@ -101,9 +101,14 @@ class AuthRemoteDatasource {
   }
 
   /// Enviar email para resetear contraseña.
+  /// El redirectTo apunta al deep link de la app para que el magic link
+  /// abra directamente la aplicación.
   Future<void> sendPasswordReset(String email) async {
     try {
-      await _client.auth.resetPasswordForEmail(email);
+      await _client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'com.example.fo://reset-callback',
+      );
     } on AuthException catch (e) {
       throw _mapAuthException(e);
     }

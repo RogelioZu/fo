@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -15,6 +16,8 @@ import '../providers/auth_providers.dart';
 
 /// Pantalla de restablecer contraseña de Finding Out.
 /// Conecta con Supabase Auth vía authRepositoryProvider.resetPassword.
+/// Después de un reset exitoso, cierra la sesión temporal de recuperación
+/// para que el usuario inicie sesión con su nueva contraseña.
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key});
 
@@ -46,6 +49,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       await ref.read(authRepositoryProvider).resetPassword(
             _passwordController.text,
           );
+
+      if (!mounted) return;
+
+      // Cerrar la sesión temporal de recuperación
+      await Supabase.instance.client.auth.signOut();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
