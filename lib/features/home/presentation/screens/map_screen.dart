@@ -12,6 +12,23 @@ import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 // ─────────────────────────────────────────────
+// Cached text styles — avoids repeated GoogleFonts lookups per frame.
+// ─────────────────────────────────────────────
+final _tsSearchInput = GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w400, color: AppColors.black);
+final _tsSearchHint = GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w400, color: AppColors.gray400);
+final _tsChip = GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600);
+final _tsSheetTitle = GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.black);
+final _tsSheetCount = GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.gray400);
+final _tsCardTitle = GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.black);
+final _tsCardSubtitle = GoogleFonts.inter(fontSize: 13, color: AppColors.gray500);
+final _tsResultTitle = GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600);
+final _tsResultSubtitle = GoogleFonts.inter(fontSize: 12, color: AppColors.gray500);
+final _tsNoResults = GoogleFonts.inter(fontSize: 14, color: AppColors.gray400);
+final _tsEmptyTitle = GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.gray400);
+final _tsEmptySubtitle = GoogleFonts.inter(fontSize: 13, color: AppColors.gray400);
+final _tsCategoryBadge = GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600);
+
+// ─────────────────────────────────────────────
 // Data models
 // ─────────────────────────────────────────────
 
@@ -84,6 +101,9 @@ final _defaultCategories = <MapCategory>[
   MapCategory(id: 'cinema', name: 'Cinema', color: const Color(0xFFD97706), lucideIcon: LucideIcons.film, markerHue: BitmapDescriptor.hueYellow),
 ];
 
+/// O(1) category lookup map — built once from the list above.
+final _categoryMap = {for (final c in _defaultCategories) c.id: c};
+
 // ─────────────────────────────────────────────
 // Map Screen
 // ─────────────────────────────────────────────
@@ -141,11 +161,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   Future<void> _initUserLocation() async {
     try {
-      final result = await LocationService.requestAndResolveLocation();
-      if (result != null && mounted) {
-        setState(() => _currentPosition = LatLng(result.lat, result.lng));
+      // Only need lat/lng — skip reverse geocoding (city/country).
+      final position = await LocationService.getCurrentPosition();
+      if (position != null && mounted) {
+        final latLng = LatLng(position.latitude, position.longitude);
+        setState(() => _currentPosition = latLng);
         _mapController?.animateCamera(
-          CameraUpdate.newLatLngZoom(_currentPosition, 13),
+          CameraUpdate.newLatLngZoom(latLng, 13),
         );
       }
     } catch (e) {
@@ -156,11 +178,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
   Future<void> _goToMyLocation() async {
     HapticFeedback.mediumImpact();
     try {
-      final result = await LocationService.requestAndResolveLocation();
-      if (result != null && mounted) {
+      // Only need lat/lng — skip reverse geocoding (city/country).
+      final position = await LocationService.getCurrentPosition();
+      if (position != null && mounted) {
         _mapController?.animateCamera(
           CameraUpdate.newLatLngZoom(
-            LatLng(result.lat, result.lng),
+            LatLng(position.latitude, position.longitude),
             14,
           ),
         );
@@ -319,21 +342,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   // ─── Helpers ───
 
-  MapCategory? _getCategoryForEvent(MapEvent event) {
-    try {
-      return _defaultCategories.firstWhere((c) => c.id == event.categoryId);
-    } catch (_) {
-      return null;
-    }
-  }
+  MapCategory? _getCategoryForEvent(MapEvent event) =>
+      _categoryMap[event.categoryId];
 
-  String _getCategoryName(String id) {
-    try {
-      return _defaultCategories.firstWhere((c) => c.id == id).name;
-    } catch (_) {
-      return 'All';
-    }
-  }
+  String _getCategoryName(String id) =>
+      _categoryMap[id]?.name ?? 'All';
 
   // ─── Build ───
 
@@ -347,7 +360,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       body: Stack(
         children: [
           // ═══ Google Map (full screen) ═══
-          GoogleMap(
+          RepaintBoundary(child: GoogleMap(
             initialCameraPosition: CameraPosition(
               target: _currentPosition,
               zoom: 13,
@@ -368,7 +381,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
             compassEnabled: false,
             // Estilo limpio: sin POIs ni transit
             style: _cleanMapStyle,
-          ),
+          )),
 
           // ═══ Top UI: search + chips ═══
           Positioned(
@@ -466,18 +479,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
               controller: _searchController,
               focusNode: _searchFocusNode,
               onChanged: _onSearchChanged,
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-                color: AppColors.black,
-              ),
+              style: _tsSearchInput,
               decoration: InputDecoration(
                 hintText: 'Search events, venues...',
-                hintStyle: GoogleFonts.inter(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.gray400,
-                ),
+                hintStyle: _tsSearchHint,
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
                 isDense: true,
@@ -535,8 +540,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                   child: Center(
                     child: Text(
                       'No events found',
-                      style: GoogleFonts.inter(
-                          fontSize: 14, color: AppColors.gray400),
+                      style: _tsNoResults,
                     ),
                   ),
                 )
@@ -562,17 +566,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
                           event.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: _tsResultTitle,
                         ),
                         subtitle: event.address != null
                             ? Text(event.address!,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(
-                                    fontSize: 12, color: AppColors.gray500))
+                                style: _tsResultSubtitle)
                             : null,
                         onTap: () => _onSearchResultTap(event),
                       );
@@ -686,11 +686,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     _selectedCategoryId != null
                         ? '${_getCategoryName(_selectedCategoryId!)} Events'
                         : 'Nearby Events',
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.black,
-                    ),
+                    style: _tsSheetTitle,
                   ),
                   Row(
                     mainAxisSize: MainAxisSize.min,
@@ -707,11 +703,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       const SizedBox(width: 8),
                       Text(
                         '${_filteredEvents.length}',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.gray400,
-                        ),
+                        style: _tsSheetCount,
                       ),
                     ],
                   ),
@@ -808,22 +800,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     ),
                     child: Text(
                       cat.name,
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: cat.color,
-                      ),
+                      style: _tsCategoryBadge.copyWith(color: cat.color),
                     ),
                   ),
                 Text(
                   event.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.black,
-                  ),
+                  style: _tsCardTitle,
                 ),
                 if (event.address != null) ...[
                   const SizedBox(height: 3),
@@ -837,10 +821,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                           event.address!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            color: AppColors.gray500,
-                          ),
+                          style: _tsCardSubtitle,
                         ),
                       ),
                     ],
@@ -873,19 +854,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
           const SizedBox(height: 12),
           Text(
             'No events found',
-            style: GoogleFonts.inter(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: AppColors.gray400,
-            ),
+            style: _tsEmptyTitle,
           ),
           const SizedBox(height: 4),
           Text(
             _selectedCategoryId != null
                 ? 'Try a different category'
                 : 'Events will appear here',
-            style:
-                GoogleFonts.inter(fontSize: 13, color: AppColors.gray400),
+            style: _tsEmptySubtitle,
           ),
         ],
       ),
@@ -939,9 +915,7 @@ class _ChipWidget extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
+        style: _tsChip.copyWith(
           color: isSelected ? AppColors.white : AppColors.black,
         ),
       ),
@@ -988,11 +962,7 @@ class _EventCardWidget extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.black,
-                  ),
+                  style: _tsCardTitle,
                 ),
                 const SizedBox(height: 3),
                 Row(
@@ -1005,10 +975,7 @@ class _EventCardWidget extends StatelessWidget {
                         subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: AppColors.gray500,
-                        ),
+                        style: _tsCardSubtitle,
                       ),
                     ),
                   ],
