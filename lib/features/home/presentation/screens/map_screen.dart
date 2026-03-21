@@ -4,16 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 // ─────────────────────────────────────────────
-// Data models (inline, event feature)
+// Data models
 // ─────────────────────────────────────────────
 
-/// Evento con ubicación para el mapa.
 class MapEvent {
   final String id;
   final String title;
@@ -52,46 +53,41 @@ class MapEvent {
       );
 }
 
-/// Categoría de evento con ícono y color.
 class MapCategory {
   final String id;
   final String name;
-  final String icon;
   final Color color;
   final IconData lucideIcon;
+  final double markerHue;
 
   const MapCategory({
     required this.id,
     required this.name,
-    required this.icon,
     required this.color,
     required this.lucideIcon,
+    required this.markerHue,
   });
 }
 
 // ─────────────────────────────────────────────
-// Category definitions (con fallback hardcoded)
+// Category definitions
 // ─────────────────────────────────────────────
 
-/// Categorías con sus colores e íconos para el mapa.
-/// Se sincronizan con la DB cuando hay datos; estas son el fallback.
 final _defaultCategories = <MapCategory>[
-  MapCategory(id: 'music', name: 'Music', icon: 'musicNote', color: const Color(0xFF3B82F6), lucideIcon: LucideIcons.music),
-  MapCategory(id: 'art', name: 'Art', icon: 'paintBrush', color: const Color(0xFFEF4444), lucideIcon: LucideIcons.palette),
-  MapCategory(id: 'sports', name: 'Sports', icon: 'soccerBall', color: const Color(0xFF10B981), lucideIcon: LucideIcons.trophy),
-  MapCategory(id: 'food_drinks', name: 'Food & Drinks', icon: 'forkKnife', color: const Color(0xFFF59E0B), lucideIcon: LucideIcons.utensils),
-  MapCategory(id: 'tech', name: 'Tech', icon: 'cpu', color: const Color(0xFF8B5CF6), lucideIcon: LucideIcons.cpu),
-  MapCategory(id: 'nightlife', name: 'Nightlife', icon: 'martini', color: const Color(0xFFEC4899), lucideIcon: LucideIcons.wine),
-  MapCategory(id: 'teatro', name: 'Theater', icon: 'maskHappy', color: const Color(0xFF6366F1), lucideIcon: LucideIcons.smile),
-  MapCategory(id: 'cinema', name: 'Cinema', icon: 'filmStrip', color: const Color(0xFFD97706), lucideIcon: LucideIcons.film),
+  MapCategory(id: 'music', name: 'Music', color: const Color(0xFF3B82F6), lucideIcon: LucideIcons.music, markerHue: BitmapDescriptor.hueAzure),
+  MapCategory(id: 'art', name: 'Art', color: const Color(0xFFEF4444), lucideIcon: LucideIcons.palette, markerHue: BitmapDescriptor.hueRed),
+  MapCategory(id: 'sports', name: 'Sports', color: const Color(0xFF10B981), lucideIcon: LucideIcons.trophy, markerHue: BitmapDescriptor.hueGreen),
+  MapCategory(id: 'food_drinks', name: 'Food & Drinks', color: const Color(0xFFF59E0B), lucideIcon: LucideIcons.utensils, markerHue: BitmapDescriptor.hueOrange),
+  MapCategory(id: 'tech', name: 'Tech', color: const Color(0xFF8B5CF6), lucideIcon: LucideIcons.cpu, markerHue: BitmapDescriptor.hueViolet),
+  MapCategory(id: 'nightlife', name: 'Nightlife', color: const Color(0xFFEC4899), lucideIcon: LucideIcons.wine, markerHue: BitmapDescriptor.hueRose),
+  MapCategory(id: 'teatro', name: 'Theater', color: const Color(0xFF6366F1), lucideIcon: LucideIcons.smile, markerHue: BitmapDescriptor.hueBlue),
+  MapCategory(id: 'cinema', name: 'Cinema', color: const Color(0xFFD97706), lucideIcon: LucideIcons.film, markerHue: BitmapDescriptor.hueYellow),
 ];
 
 // ─────────────────────────────────────────────
-// Map Screen (StatefulWidget — functional)
+// Map Screen
 // ─────────────────────────────────────────────
 
-/// Pantalla del mapa con búsqueda funcional,
-/// chips de filtro dinámicos y bottom sheet con eventos reales.
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
 
@@ -99,22 +95,36 @@ class MapScreen extends ConsumerStatefulWidget {
   ConsumerState<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends ConsumerState<MapScreen> {
+class _MapScreenState extends ConsumerState<MapScreen>
+    with AutomaticKeepAliveClientMixin {
+  // ─── Controllers ───
+  GoogleMapController? _mapController;
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   Timer? _debounceTimer;
 
+  // ─── State ───
   String? _selectedCategoryId;
   List<MapEvent> _events = [];
   List<MapEvent> _filteredEvents = [];
   List<MapEvent> _searchResults = [];
+  Set<Marker> _markers = {};
+  MapEvent? _selectedEvent;
   bool _isLoading = true;
   bool _isSearching = false;
   String _searchQuery = '';
 
+  // Default position (Monterrey, MX — se actualiza con GPS)
+  static const _defaultPosition = LatLng(25.6866, -100.3161);
+  LatLng _currentPosition = _defaultPosition;
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
+    _initUserLocation();
     _loadEvents();
   }
 
@@ -123,13 +133,46 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _debounceTimer?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
+    // No disponer _mapController — GoogleMap lo maneja internamente
     super.dispose();
   }
 
-  // ─── Data Loading ───
+  // ─── Location ───
+
+  Future<void> _initUserLocation() async {
+    try {
+      final result = await LocationService.requestAndResolveLocation();
+      if (result != null && mounted) {
+        setState(() => _currentPosition = LatLng(result.lat, result.lng));
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(_currentPosition, 13),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error getting user location: $e');
+    }
+  }
+
+  Future<void> _goToMyLocation() async {
+    HapticFeedback.mediumImpact();
+    try {
+      final result = await LocationService.requestAndResolveLocation();
+      if (result != null && mounted) {
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(
+            LatLng(result.lat, result.lng),
+            14,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error centering on user: $e');
+    }
+  }
+
+  // ─── Data ───
 
   Future<void> _loadEvents() async {
-    setState(() => _isLoading = true);
     try {
       final data = await Supabase.instance.client
           .from('events')
@@ -139,27 +182,64 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           .order('start_date', ascending: true);
 
       if (!mounted) return;
+      final events = (data as List).map((e) => MapEvent.fromJson(e)).toList();
       setState(() {
-        _events = (data as List).map((e) => MapEvent.fromJson(e)).toList();
-        _applyFilters();
+        _events = events;
         _isLoading = false;
       });
+      _applyFilters();
     } catch (e) {
-      debugPrint('Error loading map events: $e');
+      debugPrint('Error loading events: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _applyFilters() {
+    final filtered = _selectedCategoryId == null
+        ? List<MapEvent>.from(_events)
+        : _events.where((e) => e.categoryId == _selectedCategoryId).toList();
+
     setState(() {
-      if (_selectedCategoryId == null) {
-        _filteredEvents = List.from(_events);
-      } else {
-        _filteredEvents = _events
-            .where((e) => e.categoryId == _selectedCategoryId)
-            .toList();
-      }
+      _filteredEvents = filtered;
+      _markers = _buildMarkers(filtered);
     });
+  }
+
+  // ─── Markers ───
+
+  Set<Marker> _buildMarkers(List<MapEvent> events) {
+    return events.where((e) => e.hasLocation).map((event) {
+      final cat = _getCategoryForEvent(event);
+      return Marker(
+        markerId: MarkerId(event.id),
+        position: LatLng(event.locationLat!, event.locationLng!),
+        icon: BitmapDescriptor.defaultMarkerWithHue(
+          cat?.markerHue ?? BitmapDescriptor.hueRed,
+        ),
+        infoWindow: InfoWindow(
+          title: event.title,
+          snippet: event.address ?? '',
+        ),
+        onTap: () => _onMarkerTap(event),
+      );
+    }).toSet();
+  }
+
+  void _onMarkerTap(MapEvent event) {
+    HapticFeedback.selectionClick();
+    setState(() => _selectedEvent = event);
+
+    if (event.hasLocation) {
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLng(
+          LatLng(event.locationLat!, event.locationLng!),
+        ),
+      );
+    }
+  }
+
+  void _dismissSelectedEvent() {
+    setState(() => _selectedEvent = null);
   }
 
   // ─── Category Filter ───
@@ -169,8 +249,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     setState(() {
       _selectedCategoryId =
           (_selectedCategoryId == categoryId) ? null : categoryId;
-      _applyFilters();
+      _selectedEvent = null;
     });
+    _applyFilters();
   }
 
   // ─── Search ───
@@ -192,7 +273,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     _debounceTimer = Timer(const Duration(milliseconds: 400), () async {
       if (!mounted) return;
-
       try {
         final data = await Supabase.instance.client
             .from('events')
@@ -202,7 +282,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             .limit(10);
 
         if (!mounted || _searchQuery != query) return;
-
         setState(() {
           _searchResults =
               (data as List).map((e) => MapEvent.fromJson(e)).toList();
@@ -225,6 +304,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _searchFocusNode.unfocus();
   }
 
+  void _onSearchResultTap(MapEvent event) {
+    _onSearchClear();
+    if (event.hasLocation) {
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          LatLng(event.locationLat!, event.locationLng!),
+          15,
+        ),
+      );
+      setState(() => _selectedEvent = event);
+    }
+  }
+
   // ─── Helpers ───
 
   MapCategory? _getCategoryForEvent(MapEvent event) {
@@ -235,345 +327,314 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
+  String _getCategoryName(String id) {
+    try {
+      return _defaultCategories.firstWhere((c) => c.id == id).name;
+    } catch (_) {
+      return 'All';
+    }
+  }
+
   // ─── Build ───
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required by AutomaticKeepAliveClientMixin
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Scaffold(
       backgroundColor: AppColors.white,
       body: Stack(
         children: [
-          // ─── Map placeholder ───
-          _buildMapPlaceholder(),
-
-          // ─── Markers from real events ───
-          ..._buildEventMarkers(),
-
-          // ─── Top: search bar + chips ───
-          _buildTopUI(),
-
-          // ─── Draggable bottom sheet ───
-          _buildBottomSheet(),
-        ],
-      ),
-    );
-  }
-
-  // ─── Map Placeholder ───
-
-  Widget _buildMapPlaceholder() {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: const Color(0xFFE8E4D8),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(LucideIcons.map, size: 48, color: AppColors.gray400),
-            const SizedBox(height: 8),
-            Text(
-              'Map — Coming Soon',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: AppColors.gray400,
-              ),
+          // ═══ Google Map (full screen) ═══
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: _currentPosition,
+              zoom: 13,
             ),
-            const SizedBox(height: 4),
-            Text(
-              '${_filteredEvents.length} events nearby',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-                color: AppColors.gray400,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ─── Event Markers (positioned on placeholder) ───
-
-  List<Widget> _buildEventMarkers() {
-    // Show first 5 events as visual markers spread on the placeholder
-    final visible = _filteredEvents.take(5).toList();
-    if (visible.isEmpty) return [];
-
-    // Spread markers visually across the screen
-    final positions = [
-      const Offset(0.25, 0.30),
-      const Offset(0.65, 0.45),
-      const Offset(0.40, 0.55),
-      const Offset(0.75, 0.30),
-      const Offset(0.15, 0.50),
-    ];
-
-    return List.generate(visible.length, (i) {
-      final event = visible[i];
-      final category = _getCategoryForEvent(event);
-      final pos = positions[i];
-
-      return Positioned(
-        left: MediaQuery.of(context).size.width * pos.dx,
-        top: MediaQuery.of(context).size.height * pos.dy,
-        child: GestureDetector(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            _showEventSnackbar(event);
-          },
-          child: _MarkerPin(
-            color: category?.color ?? AppColors.accent,
-            icon: category?.lucideIcon ?? LucideIcons.mapPin,
-            size: 40,
-            iconSize: 18,
-            borderWidth: 3,
-          ),
-        ),
-      );
-    });
-  }
-
-  void _showEventSnackbar(MapEvent event) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(LucideIcons.mapPin, size: 16, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(event.title,
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                  if (event.address != null)
-                    Text(event.address!,
-                        style: const TextStyle(fontSize: 12)),
-                ],
-              ),
-            ),
-          ],
-        ),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: AppColors.black,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  // ─── Top UI ───
-
-  Widget _buildTopUI() {
-    final topPadding = MediaQuery.of(context).padding.top;
-
-    return Positioned(
-      top: topPadding + 8,
-      left: 0,
-      right: 0,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ─── Search bar ───
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(
-              height: 52,
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(26),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x20000000),
-                    offset: Offset(0, 4),
-                    blurRadius: 12,
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  const Icon(LucideIcons.search,
-                      size: 20, color: AppColors.gray400),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      focusNode: _searchFocusNode,
-                      onChanged: _onSearchChanged,
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.black,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Search events, venues...',
-                        hintStyle: GoogleFonts.inter(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.gray400,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                  if (_searchController.text.isNotEmpty)
-                    GestureDetector(
-                      onTap: _onSearchClear,
-                      child: const Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Icon(LucideIcons.x,
-                            size: 18, color: AppColors.gray400),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            onMapCreated: (controller) {
+              _mapController = controller;
+              // Map ready
+            },
+            markers: _markers,
+            onTap: (_) {
+              _dismissSelectedEvent();
+              _searchFocusNode.unfocus();
+            },
+            myLocationEnabled: true,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
+            compassEnabled: false,
+            // Estilo limpio: sin POIs ni transit
+            style: _cleanMapStyle,
           ),
 
-          // ─── Search Results Dropdown ───
-          if (_searchQuery.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                margin: const EdgeInsets.only(top: 4),
-                constraints: const BoxConstraints(maxHeight: 200),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.gray200),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.black.withValues(alpha: 0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+          // ═══ Top UI: search + chips ═══
+          Positioned(
+            top: topPadding + 8,
+            left: 0,
+            right: 0,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ─── Search Bar ───
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _buildSearchBar(),
                 ),
-                child: _isSearching
-                    ? const Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Center(
-                          child: SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.gray400,
-                            ),
-                          ),
-                        ),
-                      )
-                    : _searchResults.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Center(
-                              child: Text(
-                                'No events found',
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  color: AppColors.gray400,
-                                ),
-                              ),
-                            ),
-                          )
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: ListView.separated(
-                              shrinkWrap: true,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 4),
-                              itemCount: _searchResults.length,
-                              separatorBuilder: (_, __) => const Divider(
-                                height: 1,
-                                indent: 44,
-                                color: AppColors.gray100,
-                              ),
-                              itemBuilder: (context, index) {
-                                final event = _searchResults[index];
-                                final cat = _getCategoryForEvent(event);
-                                return ListTile(
-                                  dense: true,
-                                  leading: Icon(
-                                    cat?.lucideIcon ?? LucideIcons.mapPin,
-                                    size: 18,
-                                    color: cat?.color ?? AppColors.accent,
-                                  ),
-                                  title: Text(
-                                    event.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  subtitle: event.address != null
-                                      ? Text(
-                                          event.address!,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: GoogleFonts.inter(
-                                            fontSize: 12,
-                                            color: AppColors.gray500,
-                                          ),
-                                        )
-                                      : null,
-                                  onTap: () {
-                                    _onSearchClear();
-                                    _showEventSnackbar(event);
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-              ),
-            ),
 
-          const SizedBox(height: 12),
-
-          // ─── Filter chips (scrollable) ───
-          SizedBox(
-            height: 40,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              itemCount: _defaultCategories.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  final isSelected = _selectedCategoryId == null;
-                  return GestureDetector(
-                    onTap: () => _onCategoryTap(null),
-                    child: _FilterChipWidget(
-                      label: 'All',
-                      isSelected: isSelected,
-                      color: AppColors.black,
-                    ),
-                  );
-                }
-                final cat = _defaultCategories[index - 1];
-                final isSelected = _selectedCategoryId == cat.id;
-                return GestureDetector(
-                  onTap: () => _onCategoryTap(cat.id),
-                  child: _FilterChipWidget(
-                    label: cat.name,
-                    isSelected: isSelected,
-                    color: cat.color,
+                // ─── Search Results ───
+                if (_searchQuery.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _buildSearchResults(),
                   ),
-                );
-              },
+
+                const SizedBox(height: 12),
+
+                // ─── Category Chips ───
+                _buildCategoryChips(),
+              ],
             ),
           ),
+
+          // ═══ My Location Button ═══
+          Positioned(
+            right: 16,
+            bottom: _selectedEvent != null ? 290 : 120,
+            child: _buildMyLocationButton(),
+          ),
+
+          // ═══ Bottom Sheet ═══
+          _buildBottomSheet(),
+
+          // ═══ Selected Event Overlay ═══
+          if (_selectedEvent != null)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 110,
+              child: _buildSelectedEventCard(),
+            ),
+
+          // ═══ Loading indicator ═══
+          if (_isLoading)
+            Positioned(
+              top: topPadding + 140,
+              left: 0,
+              right: 0,
+              child: const Center(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
+            ),
         ],
+      ),
+    );
+  }
+
+  // ─── Search Bar ───
+
+  Widget _buildSearchBar() {
+    return Container(
+      height: 52,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x20000000),
+            offset: Offset(0, 4),
+            blurRadius: 12,
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          const Icon(LucideIcons.search, size: 20, color: AppColors.gray400),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              onChanged: _onSearchChanged,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+                color: AppColors.black,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Search events, venues...',
+                hintStyle: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.gray400,
+                ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                isDense: true,
+              ),
+            ),
+          ),
+          if (_searchController.text.isNotEmpty)
+            GestureDetector(
+              onTap: _onSearchClear,
+              child: const Padding(
+                padding: EdgeInsets.all(8),
+                child: Icon(LucideIcons.x, size: 18, color: AppColors.gray400),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Search Results Dropdown ───
+
+  Widget _buildSearchResults() {
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      constraints: const BoxConstraints(maxHeight: 200),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.gray200),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: _isSearching
+          ? const Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.gray400,
+                  ),
+                ),
+              ),
+            )
+          : _searchResults.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Center(
+                    child: Text(
+                      'No events found',
+                      style: GoogleFonts.inter(
+                          fontSize: 14, color: AppColors.gray400),
+                    ),
+                  ),
+                )
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    itemCount: _searchResults.length,
+                    separatorBuilder: (_, __) => const Divider(
+                        height: 1, indent: 44, color: AppColors.gray100),
+                    itemBuilder: (context, i) {
+                      final event = _searchResults[i];
+                      final cat = _getCategoryForEvent(event);
+                      return ListTile(
+                        dense: true,
+                        leading: Icon(
+                          cat?.lucideIcon ?? LucideIcons.mapPin,
+                          size: 18,
+                          color: cat?.color ?? AppColors.accent,
+                        ),
+                        title: Text(
+                          event.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: event.address != null
+                            ? Text(event.address!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                    fontSize: 12, color: AppColors.gray500))
+                            : null,
+                        onTap: () => _onSearchResultTap(event),
+                      );
+                    },
+                  ),
+                ),
+    );
+  }
+
+  // ─── Category Chips ───
+
+  Widget _buildCategoryChips() {
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        itemCount: _defaultCategories.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return GestureDetector(
+              onTap: () => _onCategoryTap(null),
+              child: _ChipWidget(
+                label: 'All',
+                isSelected: _selectedCategoryId == null,
+                color: AppColors.black,
+              ),
+            );
+          }
+          final cat = _defaultCategories[index - 1];
+          return GestureDetector(
+            onTap: () => _onCategoryTap(cat.id),
+            child: _ChipWidget(
+              label: cat.name,
+              isSelected: _selectedCategoryId == cat.id,
+              color: cat.color,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ─── My Location FAB ───
+
+  Widget _buildMyLocationButton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: IconButton(
+        onPressed: _goToMyLocation,
+        icon: const Icon(LucideIcons.locate, color: AppColors.black, size: 22),
       ),
     );
   }
@@ -582,11 +643,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   Widget _buildBottomSheet() {
     return DraggableScrollableSheet(
-      initialChildSize: 0.34,
-      minChildSize: 0.34,
-      maxChildSize: 0.75,
+      initialChildSize: 0.30,
+      minChildSize: 0.12,
+      maxChildSize: 0.70,
       snap: true,
-      snapSizes: const [0.34, 0.75],
+      snapSizes: const [0.12, 0.30, 0.70],
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
@@ -624,7 +685,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   Text(
                     _selectedCategoryId != null
                         ? '${_getCategoryName(_selectedCategoryId!)} Events'
-                        : 'Featured Events',
+                        : 'Nearby Events',
                     style: GoogleFonts.inter(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -632,6 +693,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ),
                   ),
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       if (_isLoading)
                         const SizedBox(
@@ -643,10 +705,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           ),
                         ),
                       const SizedBox(width: 8),
-                      const Icon(
-                        LucideIcons.slidersHorizontal,
-                        size: 20,
-                        color: AppColors.black,
+                      Text(
+                        '${_filteredEvents.length}',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.gray400,
+                        ),
                       ),
                     ],
                   ),
@@ -654,23 +719,32 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Event list (real data or empty state)
-              if (_filteredEvents.isEmpty && !_isLoading)
-                _buildEmptyState()
-              else
-                ..._filteredEvents.take(10).map((event) {
-                  final cat = _getCategoryForEvent(event);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: _EventCardWidget(
-                      title: event.title,
-                      subtitle: event.address ?? 'No location',
-                      imageColor: cat?.color ?? AppColors.gray400,
-                      icon: cat?.lucideIcon ?? LucideIcons.calendar,
-                      onTap: () => _showEventSnackbar(event),
-                    ),
-                  );
-                }),
+              // Events list
+              if (_filteredEvents.isEmpty && !_isLoading) _buildEmptyState(),
+
+              ..._filteredEvents.take(15).map((event) {
+                final cat = _getCategoryForEvent(event);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _EventCardWidget(
+                    title: event.title,
+                    subtitle: event.address ?? 'Location TBD',
+                    color: cat?.color ?? AppColors.gray400,
+                    icon: cat?.lucideIcon ?? LucideIcons.calendar,
+                    onTap: () {
+                      if (event.hasLocation) {
+                        _mapController?.animateCamera(
+                          CameraUpdate.newLatLngZoom(
+                            LatLng(event.locationLat!, event.locationLng!),
+                            15,
+                          ),
+                        );
+                        setState(() => _selectedEvent = event);
+                      }
+                    },
+                  ),
+                );
+              }),
             ],
           ),
         );
@@ -678,9 +752,121 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
+  // ─── Selected Event Card ───
+
+  Widget _buildSelectedEventCard() {
+    final event = _selectedEvent!;
+    final cat = _getCategoryForEvent(event);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.gray200),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.12),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Category colored icon
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: (cat?.color ?? AppColors.gray400).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Icon(
+                cat?.lucideIcon ?? LucideIcons.calendar,
+                size: 24,
+                color: cat?.color ?? AppColors.gray400,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (cat != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: cat.color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      cat.name,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: cat.color,
+                      ),
+                    ),
+                  ),
+                Text(
+                  event.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.black,
+                  ),
+                ),
+                if (event.address != null) ...[
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      const Icon(LucideIcons.mapPin,
+                          size: 13, color: AppColors.gray400),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          event.address!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: AppColors.gray500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Close
+          GestureDetector(
+            onTap: _dismissSelectedEvent,
+            child: const Padding(
+              padding: EdgeInsets.all(4),
+              child: Icon(LucideIcons.x, size: 18, color: AppColors.gray400),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Empty State ───
+
   Widget _buildEmptyState() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40),
+      padding: const EdgeInsets.symmetric(vertical: 32),
       child: Column(
         children: [
           Icon(LucideIcons.mapPin, size: 36, color: AppColors.gray200),
@@ -698,70 +884,27 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             _selectedCategoryId != null
                 ? 'Try a different category'
                 : 'Events will appear here',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: AppColors.gray400,
-            ),
+            style:
+                GoogleFonts.inter(fontSize: 13, color: AppColors.gray400),
           ),
         ],
       ),
     );
   }
 
-  String _getCategoryName(String id) {
-    try {
-      return _defaultCategories.firstWhere((c) => c.id == id).name;
-    } catch (_) {
-      return 'All';
-    }
-  }
+  // ─── Map Style ───
+  static const String _cleanMapStyle = '''[
+    {"featureType":"poi","elementType":"labels","stylers":[{"visibility":"off"}]},
+    {"featureType":"transit","elementType":"labels","stylers":[{"visibility":"off"}]}
+  ]''';
 }
 
 // ─────────────────────────────────────────────
-// Reusable sub-widgets
+// Sub-widgets
 // ─────────────────────────────────────────────
 
-class _MarkerPin extends StatelessWidget {
-  const _MarkerPin({
-    required this.color,
-    required this.icon,
-    required this.size,
-    required this.iconSize,
-    required this.borderWidth,
-  });
-
-  final Color color;
-  final IconData icon;
-  final double size;
-  final double iconSize;
-  final double borderWidth;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.white, width: borderWidth),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x20000000),
-            offset: Offset(0, 4),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: Center(
-        child: Icon(icon, size: iconSize, color: AppColors.white),
-      ),
-    );
-  }
-}
-
-class _FilterChipWidget extends StatelessWidget {
-  const _FilterChipWidget({
+class _ChipWidget extends StatelessWidget {
+  const _ChipWidget({
     required this.label,
     required this.isSelected,
     required this.color,
@@ -810,14 +953,14 @@ class _EventCardWidget extends StatelessWidget {
   const _EventCardWidget({
     required this.title,
     required this.subtitle,
-    required this.imageColor,
+    required this.color,
     required this.icon,
     this.onTap,
   });
 
   final String title;
   final String subtitle;
-  final Color imageColor;
+  final Color color;
   final IconData icon;
   final VoidCallback? onTap;
 
@@ -828,15 +971,13 @@ class _EventCardWidget extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 64,
-            height: 64,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              color: imageColor.withValues(alpha: 0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Center(
-              child: Icon(icon, size: 24, color: imageColor),
-            ),
+            child: Center(child: Icon(icon, size: 22, color: color)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -848,25 +989,35 @@ class _EventCardWidget extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppColors.black,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.gray500,
-                  ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    const Icon(LucideIcons.mapPin,
+                        size: 13, color: AppColors.gray400),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: AppColors.gray500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+          const Icon(LucideIcons.chevronRight,
+              size: 18, color: AppColors.gray200),
         ],
       ),
     );

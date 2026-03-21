@@ -6,10 +6,10 @@ import 'map_screen.dart';
 import 'profile_screen.dart';
 
 /// Shell principal con navegación por tabs (Home, Search, Map, Profile).
-/// Usa IndexedStack para preservar el estado de cada tab.
 ///
-/// Los tabs pesados (como Map) se cargan lazy: solo se construyen
-/// cuando el usuario los visita por primera vez.
+/// Usa IndexedStack para preservar el estado de cada tab.
+/// Los tabs se cargan lazy (solo al visitar) y se cachean para evitar
+/// que se recreen en cada rebuild (lo cual destruye el estado del mapa).
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -20,36 +20,42 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  /// Tabs que ya fueron visitados → se activan con lazy loading.
-  final Set<int> _loadedTabs = {0}; // Home siempre cargado
+  /// Tabs que ya fueron visitados.
+  final Set<int> _loadedTabs = {0};
 
-  Widget _buildTab(int index) {
-    if (!_loadedTabs.contains(index)) {
-      return const SizedBox.shrink();
-    }
+  /// Cache de widgets creados — NUNCA se recrean después de su primera
+  /// construcción. Esto es crítico para GoogleMap: si el widget se recrea,
+  /// el estado del mapa se pierde y se inicializa de nuevo, causando
+  /// un crash por reinicialización nativa repetida.
+  late final List<Widget> _cachedScreens = List.generate(4, (_) => const SizedBox.shrink());
 
-    switch (index) {
-      case 0:
-        return const HomeScreen();
-      case 1:
-        return const Scaffold(
-          backgroundColor: Colors.white,
-          body: Center(child: Text('Search — TODO')),
-        );
-      case 2:
-        return const MapScreen();
-      case 3:
-        return const ProfileScreen();
-      default:
-        return const SizedBox.shrink();
-    }
+  @override
+  void initState() {
+    super.initState();
+    // Home siempre cargado
+    _cachedScreens[0] = const HomeScreen();
   }
 
   void _onTabTap(int index) {
-    setState(() {
-      _currentIndex = index;
+    if (!_loadedTabs.contains(index)) {
       _loadedTabs.add(index);
-    });
+      // Crear el widget UNA vez y cachearlo
+      switch (index) {
+        case 1:
+          _cachedScreens[1] = const Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(child: Text('Search — TODO')),
+          );
+          break;
+        case 2:
+          _cachedScreens[2] = const MapScreen();
+          break;
+        case 3:
+          _cachedScreens[3] = const ProfileScreen();
+          break;
+      }
+    }
+    setState(() => _currentIndex = index);
   }
 
   @override
@@ -60,7 +66,7 @@ class _MainShellState extends State<MainShell> {
         children: [
           IndexedStack(
             index: _currentIndex,
-            children: List.generate(4, _buildTab),
+            children: _cachedScreens,
           ),
           Positioned(
             left: 0,
