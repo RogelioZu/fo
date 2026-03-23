@@ -1,11 +1,13 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
-/// Barra de navegación flotante tipo pill de Finding Out.
-/// Tres tabs: Home, Search, Profile. El tab activo se pinta negro.
+/// Barra de navegación flotante tipo pill con efecto glassmorphism.
+/// Blur de fondo + tinte translúcido + borde sutil brillante.
 class NavPill extends StatelessWidget {
   const NavPill({
     super.key,
@@ -27,63 +29,80 @@ class NavPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-      child: Container(
-        height: 62,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(31),
-          border: Border.all(color: AppColors.gray200, width: 2),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x1A000000),
-              offset: Offset(0, 4),
-              blurRadius: 20,
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(4),
-        child: Row(
-          children: List.generate(_tabs.length, (i) {
-            final tab = _tabs[i];
-            final isActive = i == currentIndex;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onTap(i);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  decoration: BoxDecoration(
-                    color: isActive ? AppColors.black : Colors.transparent,
-                    borderRadius: BorderRadius.circular(27),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        tab.icon,
-                        size: 18,
-                        color: isActive ? AppColors.white : AppColors.gray500,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        tab.label,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color:
-                              isActive ? AppColors.white : AppColors.gray500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(31),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: Container(
+            height: 62,
+            decoration: BoxDecoration(
+              // Tinte blanco translúcido (el blur se ve a través)
+              color: AppColors.white.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(31),
+              // Borde sutil brillante para el efecto glass
+              border: Border.all(
+                color: AppColors.white.withValues(alpha: 0.45),
+                width: 1.5,
               ),
-            );
-          }),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.black.withValues(alpha: 0.08),
+                  offset: const Offset(0, 8),
+                  blurRadius: 32,
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(4),
+            child: Row(
+              children: List.generate(_tabs.length, (i) {
+                final tab = _tabs[i];
+                final isActive = i == currentIndex;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      onTap(i);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? AppColors.black.withValues(alpha: 0.88)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(27),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            tab.icon,
+                            size: 18,
+                            color: isActive
+                                ? AppColors.white
+                                : AppColors.gray500,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            tab.label,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.3,
+                              color: isActive
+                                  ? AppColors.white
+                                  : AppColors.gray500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
         ),
       ),
     );
