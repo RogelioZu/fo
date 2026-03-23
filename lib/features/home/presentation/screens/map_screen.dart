@@ -133,6 +133,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
   bool _isLoading = true;
   bool _isSearching = false;
   String _searchQuery = '';
+  bool _isFollowingUser = false;
+  bool _isLocating = false;
 
   // Default position (Monterrey, MX — se actualiza con GPS)
   static const _defaultPosition = LatLng(25.6866, -100.3161);
@@ -177,20 +179,50 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   Future<void> _goToMyLocation() async {
     HapticFeedback.mediumImpact();
+    setState(() => _isLocating = true);
     try {
-      // Only need lat/lng — skip reverse geocoding (city/country).
       final position = await LocationService.getCurrentPosition();
       if (position != null && mounted) {
+        final latLng = LatLng(position.latitude, position.longitude);
+        setState(() {
+          _currentPosition = latLng;
+          _isFollowingUser = true;
+          _isLocating = false;
+        });
         _mapController?.animateCamera(
-          CameraUpdate.newLatLngZoom(
-            LatLng(position.latitude, position.longitude),
-            14,
-          ),
+          CameraUpdate.newLatLngZoom(latLng, 15),
         );
+      } else {
+        if (mounted) setState(() => _isLocating = false);
       }
     } catch (e) {
       debugPrint('Error centering on user: $e');
+      if (mounted) setState(() => _isLocating = false);
     }
+  }
+
+  /// Called when the user manually drags / pinches the map.
+  void _onCameraMove(CameraPosition position) {
+    // If the user pans away from their location, stop "following."
+    if (_isFollowingUser) {
+      final dist = _roughDistance(
+        position.target.latitude,
+        position.target.longitude,
+        _currentPosition.latitude,
+        _currentPosition.longitude,
+      );
+      // ~200 m threshold
+      if (dist > 0.002) {
+        setState(() => _isFollowingUser = false);
+      }
+    }
+  }
+
+  /// Quick Euclidean-ish distance in degrees (not precise, but fine for UX).
+  static double _roughDistance(double lat1, double lng1, double lat2, double lng2) {
+    final dLat = lat1 - lat2;
+    final dLng = lng1 - lng2;
+    return (dLat * dLat + dLng * dLng);
   }
 
   // ─── Data ───
@@ -370,6 +402,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
               // Map ready
             },
             markers: _markers,
+            onCameraMove: _onCameraMove,
             onTap: (_) {
               _dismissSelectedEvent();
               _searchFocusNode.unfocus();
@@ -620,21 +653,54 @@ class _MapScreenState extends ConsumerState<MapScreen>
   // ─── My Location FAB ───
 
   Widget _buildMyLocationButton() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.12),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: IconButton(
-        onPressed: _goToMyLocation,
-        icon: const Icon(LucideIcons.locate, color: AppColors.black, size: 22),
+    final isActive = _isFollowingUser;
+    final bgColor = isActive
+        ? const Color(0xFF4285F4) // Google blue when following
+        : AppColors.white;
+    final iconColor = isActive ? AppColors.white : AppColors.black;
+
+    return GestureDetector(
+      onTap: _isLocating ? null : _goToMyLocation,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: bgColor,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: isActive
+                  ? const Color(0xFF4285F4).withValues(alpha: 0.35)
+                  : AppColors.black.withValues(alpha: 0.15),
+              blurRadius: isActive ? 16 : 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Center(
+          child: _isLocating
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: iconColor,
+                  ),
+                )
+              : AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    isActive
+                        ? LucideIcons.navigation
+                        : LucideIcons.locate,
+                    key: ValueKey(isActive),
+                    color: iconColor,
+                    size: 22,
+                  ),
+                ),
+        ),
       ),
     );
   }

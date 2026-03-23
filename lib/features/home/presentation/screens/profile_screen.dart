@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -80,8 +80,8 @@ class ProfileScreen extends ConsumerWidget {
                       child: SizedBox(
                         width: 140,
                         height: 140,
-                        child: user.avatarUrl != null &&
-                                user.avatarUrl!.isNotEmpty
+                        child:
+                            user.avatarUrl != null && user.avatarUrl!.isNotEmpty
                             ? CachedNetworkImage(
                                 imageUrl: user.avatarUrl!,
                                 fit: BoxFit.cover,
@@ -247,12 +247,7 @@ class ProfileScreen extends ConsumerWidget {
 
               // ─── Achievements ───
               Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  0,
-                  0,
-                  0,
-                  AppSpacing.lg,
-                ),
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, AppSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -543,10 +538,7 @@ class _BadgeItem extends StatelessWidget {
         Container(
           width: 72,
           height: 72,
-          decoration: BoxDecoration(
-            color: bgColor,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
           alignment: Alignment.center,
           child: Icon(icon, size: 28, color: iconColor),
         ),
@@ -569,10 +561,7 @@ class _BadgeItem extends StatelessWidget {
 }
 
 class _EmptyEventSection extends StatelessWidget {
-  const _EmptyEventSection({
-    required this.title,
-    this.showSeeAll = false,
-  });
+  const _EmptyEventSection({required this.title, this.showSeeAll = false});
 
   final String title;
   final bool showSeeAll;
@@ -621,11 +610,7 @@ class _EmptyEventSection extends StatelessWidget {
             ),
             child: Column(
               children: [
-                Icon(
-                  LucideIcons.calendar,
-                  size: 28,
-                  color: AppColors.gray200,
-                ),
+                Icon(LucideIcons.calendar, size: 28, color: AppColors.gray200),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'No events yet',
@@ -774,10 +759,7 @@ class _LogOutButtonState extends State<_LogOutButton> {
       onTap: _loading ? null : _handleLogOut,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(
-          vertical: 14,
-          horizontal: 24,
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
         decoration: BoxDecoration(
           color: const Color(0xFFFEF2F2),
           borderRadius: BorderRadius.circular(16),
@@ -804,4 +786,3 @@ class _LogOutButtonState extends State<_LogOutButton> {
     );
   }
 }
-
