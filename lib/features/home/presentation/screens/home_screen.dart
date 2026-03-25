@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../../../core/providers/selected_location_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../../core/widgets/location_picker_sheet.dart';
 
 /// Pantalla principal Home de Finding Out.
 /// Muestra secciones de eventos por categoría (Featured, Near you, Music).
@@ -15,10 +16,8 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userAsync = ref.watch(currentUserProvider);
-    final cityName = userAsync.whenOrNull(
-      data: (user) => user?.city,
-    );
+    final selectedLocation = ref.watch(selectedLocationProvider);
+    final cityName = selectedLocation?.city;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -50,8 +49,10 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      if (cityName != null && cityName.isNotEmpty)
-                        Row(
+                      GestureDetector(
+                        onTap: () => LocationPickerSheet.show(context),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(
                               LucideIcons.mapPin,
@@ -60,15 +61,24 @@ class HomeScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              cityName,
+                              cityName != null && cityName.isNotEmpty
+                                  ? cityName
+                                  : 'Set your location',
                               style: GoogleFonts.inter(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: const Color(0xFF3B82F6),
                               ),
                             ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              LucideIcons.chevronDown,
+                              size: 14,
+                              color: Color(0xFF3B82F6),
+                            ),
                           ],
                         ),
+                      ),
                     ],
                   ),
                   const Icon(
