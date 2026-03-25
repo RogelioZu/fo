@@ -32,21 +32,21 @@ class NavPill extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(31),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
           child: Container(
             height: 62,
             decoration: BoxDecoration(
-              // Tinte blanco translúcido (el blur se ve a través)
-              color: AppColors.white.withValues(alpha: 0.72),
+              // Tinte muy sutil — deja que el blur sea protagonista
+              color: AppColors.white.withValues(alpha: 0.35),
               borderRadius: BorderRadius.circular(31),
-              // Borde sutil brillante para el efecto glass
+              // Borde glass — brillo fino apenas visible
               border: Border.all(
-                color: AppColors.white.withValues(alpha: 0.45),
-                width: 1.5,
+                color: AppColors.white.withValues(alpha: 0.25),
+                width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.black.withValues(alpha: 0.08),
+                  color: AppColors.black.withValues(alpha: 0.06),
                   offset: const Offset(0, 8),
                   blurRadius: 32,
                 ),
@@ -68,7 +68,7 @@ class NavPill extends StatelessWidget {
                       curve: Curves.easeInOut,
                       decoration: BoxDecoration(
                         color: isActive
-                            ? AppColors.black.withValues(alpha: 0.88)
+                            ? AppColors.black.withValues(alpha: 0.75)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(27),
                       ),
