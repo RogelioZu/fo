@@ -26,16 +26,10 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> signOut() => _datasource.signOut();
 
   @override
-  Future<AppUser> signInWithGoogle() {
-    // TODO: implementar Google Sign-In con google_sign_in package
-    throw UnimplementedError('Google Sign-In aún no implementado');
-  }
+  Future<AppUser> signInWithGoogle() => _datasource.signInWithGoogle();
 
   @override
-  Future<AppUser> signInWithApple() {
-    // TODO: implementar Apple Sign-In con sign_in_with_apple package
-    throw UnimplementedError('Apple Sign-In aún no implementado');
-  }
+  Future<AppUser> signInWithApple() => _datasource.signInWithApple();
 
   @override
   Future<void> signInWithPhone(String phone) {

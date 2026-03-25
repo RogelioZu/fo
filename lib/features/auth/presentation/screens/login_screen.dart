@@ -30,6 +30,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
+  bool _isAppleLoading = false;
 
   @override
   void dispose() {
@@ -85,6 +87,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  /// Handler genérico para login social (Google / Apple).
+  Future<void> _onSocialLogin({
+    required Future<dynamic> Function() signIn,
+    required void Function(bool) setLoading,
+  }) async {
+    setLoading(true);
+    try {
+      final user = await signIn();
+
+      if (!mounted) return;
+
+      if (!user.profileComplete) {
+        context.go('/setup/name');
+      } else {
+        _updateLocationInBackground();
+        context.go('/home');
+      }
+    } on AppException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ocurrió un error inesperado. Intenta de nuevo.')),
+      );
+    } finally {
+      if (mounted) setLoading(false);
+    }
+  }
+
+  void _onGoogleLogin() => _onSocialLogin(
+        signIn: () => ref.read(authRepositoryProvider).signInWithGoogle(),
+        setLoading: (v) => setState(() => _isGoogleLoading = v),
+      );
+
+  void _onAppleLogin() => _onSocialLogin(
+        signIn: () => ref.read(authRepositoryProvider).signInWithApple(),
+        setLoading: (v) => setState(() => _isAppleLoading = v),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -207,14 +251,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     // ─── Social Buttons ───
                     SocialLoginRow(
                       onFacebook: () {
-                        // TODO: Facebook login
+                        // TODO: Facebook login — requiere Facebook Developer App
                       },
-                      onGoogle: () {
-                        // TODO: Google login
-                      },
-                      onApple: () {
-                        // TODO: Apple login
-                      },
+                      onGoogle: _isGoogleLoading ? null : _onGoogleLogin,
+                      onApple: _isAppleLoading ? null : _onAppleLogin,
+                      isGoogleLoading: _isGoogleLoading,
+                      isAppleLoading: _isAppleLoading,
                     ),
 
                     const SizedBox(height: 64),

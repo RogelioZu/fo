@@ -1,11 +1,25 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/errors/exceptions.dart';
 import '../../../auth/domain/entities/app_user.dart';
 import '../models/user_model.dart';
+
+/// Web Client ID de Google Cloud (tipo "Web application").
+/// Supabase lo usa para validar el ID token.
+const _googleWebClientId =
+    '510255339256-fb3ftcoqj4o18b0gu2sh62sf96l0qum6.apps.googleusercontent.com';
+
+/// Android Client ID de Google Cloud.
+const _googleAndroidClientId =
+    '510255339256-lh4d958tsr5ue5e2rirancdapdchkv2i.apps.googleusercontent.com';
 
 /// Datasource que interactúa directamente con Supabase Auth y DB.
 class AuthRemoteDatasource {
@@ -71,6 +85,113 @@ class AuthRemoteDatasource {
     } on AuthException catch (e) {
       throw _mapAuthException(e);
     }
+  }
+
+  /// Login con Google OAuth.
+  /// Flujo: GoogleSignIn → ID token → Supabase signInWithIdToken.
+  Future<AppUser> signInWithGoogle() async {
+    try {
+      // 1. Configurar GoogleSignIn con el client ID correcto por plataforma
+      final googleSignIn = GoogleSignIn(
+        clientId: Platform.isIOS ? _googleWebClientId : null,
+        serverClientId: _googleWebClientId,
+        scopes: ['email', 'profile'],
+      );
+
+      // 2. Abrir el selector de cuenta de Google
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        // El usuario canceló el login
+        throw const UnknownException('Google Sign-In cancelado.');
+      }
+
+      // 3. Obtener tokens de autenticación
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      final accessToken = googleAuth.accessToken;
+
+      if (idToken == null) {
+        throw const UnknownException('No se pudo obtener el token de Google.');
+      }
+
+      // 4. Pasarle el token a Supabase para crear/vincular la sesión
+      final response = await _client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
+      );
+
+      if (response.user == null) {
+        throw const UnknownException('Error al autenticar con Google.');
+      }
+
+      // 5. Obtener perfil (el trigger puede haberlo creado)
+      return _fetchProfile(
+        response.user!.id,
+        response.user!.email ?? googleUser.email,
+      );
+    } on AuthException catch (e) {
+      throw _mapAuthException(e);
+    }
+  }
+
+  /// Login con Apple Sign-In.
+  /// Flujo: SignInWithApple → nonce + ID token → Supabase signInWithIdToken.
+  ///
+  /// Requiere Apple Developer Account con Sign in with Apple configurado.
+  /// Funciona en iOS 13+ y macOS 10.15+.
+  Future<AppUser> signInWithApple() async {
+    try {
+      // 1. Generar nonce criptográfico (requerido por Apple + Supabase)
+      final rawNonce = _generateNonce();
+      final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
+
+      // 2. Solicitar credenciales de Apple
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: hashedNonce,
+      );
+
+      final idToken = appleCredential.identityToken;
+      if (idToken == null) {
+        throw const UnknownException('No se pudo obtener el token de Apple.');
+      }
+
+      // 3. Autenticar con Supabase usando el token de Apple
+      final response = await _client.auth.signInWithIdToken(
+        provider: OAuthProvider.apple,
+        idToken: idToken,
+        nonce: rawNonce,
+      );
+
+      if (response.user == null) {
+        throw const UnknownException('Error al autenticar con Apple.');
+      }
+
+      return _fetchProfile(
+        response.user!.id,
+        response.user!.email ?? '',
+      );
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        throw const UnknownException('Apple Sign-In cancelado.');
+      }
+      throw UnknownException('Apple Sign-In error: ${e.message}');
+    } on AuthException catch (e) {
+      throw _mapAuthException(e);
+    }
+  }
+
+  /// Genera un nonce criptográficamente seguro para Apple Sign-In.
+  static String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
+        .join();
   }
 
   /// Cerrar sesión.

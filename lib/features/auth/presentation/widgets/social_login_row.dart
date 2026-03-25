@@ -69,19 +69,36 @@ class SocialLoginRow extends StatelessWidget {
         ),
         const SizedBox(width: 16),
         _buildSocialButton(
-          child: Text(
-            'G',
-            style: AppTextStyles.heading3.copyWith(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          child: isGoogleLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.black,
+                  ),
+                )
+              : Text(
+                  'G',
+                  style: AppTextStyles.heading3.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
           onTap: onGoogle,
         ),
         const SizedBox(width: 16),
         _buildSocialButton(
-          child:
-              const Icon(LucideIcons.apple, size: 24, color: AppColors.black),
+          child: isAppleLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.black,
+                  ),
+                )
+              : const Icon(LucideIcons.apple, size: 24, color: AppColors.black),
           onTap: onApple,
         ),
       ],
