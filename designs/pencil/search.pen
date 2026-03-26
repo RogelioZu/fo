@@ -1,0 +1,506 @@
+{
+  "version": "2.9",
+  "children": [
+    {
+      "type": "frame",
+      "id": "0Hx4B",
+      "x": 0,
+      "y": 0,
+      "name": "Search - Initial",
+      "width": 402,
+      "height": 874,
+      "fill": "#FFFFFF",
+      "layout": "vertical",
+      "gap": 24,
+      "padding": [
+        60,
+        24,
+        40,
+        24
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "Bua1w",
+          "name": "t1",
+          "fill": "#000000",
+          "content": "Explora",
+          "fontFamily": "Inter",
+          "fontSize": 32,
+          "fontWeight": "800"
+        },
+        {
+          "type": "frame",
+          "id": "qGwmb",
+          "name": "sb1",
+          "width": "fill_container",
+          "height": 56,
+          "fill": "#F3F4F6",
+          "cornerRadius": 16,
+          "gap": 12,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon_font",
+              "id": "yxtdc",
+              "width": 20,
+              "height": 20,
+              "iconFontName": "search",
+              "iconFontFamily": "lucide",
+              "fill": "#6B7280"
+            },
+            {
+              "type": "text",
+              "id": "Ud6gY",
+              "fill": "#6B7280",
+              "content": "Busca eventos o personas...",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "uOA6N",
+          "name": "rsTitle",
+          "fill": "#000000",
+          "content": "Búsquedas recientes",
+          "fontFamily": "Inter",
+          "fontSize": 18,
+          "fontWeight": "700"
+        },
+        {
+          "type": "frame",
+          "id": "xOQUo",
+          "name": "rsList",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "ZJwhi",
+              "name": "r1",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ahpVY",
+                  "fill": "#000000",
+                  "content": "Lollapalooza 2024",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "3glIC",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "x",
+                  "iconFontFamily": "lucide",
+                  "fill": "#6B7280"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "6v12b",
+              "name": "r2",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "DBABB",
+                  "fill": "#000000",
+                  "content": "Zdenko",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "JENC5",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "x",
+                  "iconFontFamily": "lucide",
+                  "fill": "#6B7280"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "yznnv",
+      "x": 450,
+      "y": 0,
+      "name": "Search - Active (Results)",
+      "width": 402,
+      "height": 874,
+      "fill": "#FFFFFF",
+      "layout": "vertical",
+      "gap": 24,
+      "padding": [
+        60,
+        24,
+        40,
+        24
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "2kJoX",
+          "name": "t2",
+          "fill": "#000000",
+          "content": "Resultados",
+          "fontFamily": "Inter",
+          "fontSize": 32,
+          "fontWeight": "800"
+        },
+        {
+          "type": "frame",
+          "id": "G8wu7",
+          "name": "sb2",
+          "width": "fill_container",
+          "height": 56,
+          "fill": "#F3F4F6",
+          "cornerRadius": 16,
+          "gap": 12,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon_font",
+              "id": "CO7M0",
+              "width": 20,
+              "height": 20,
+              "iconFontName": "arrow-left",
+              "iconFontFamily": "lucide",
+              "fill": "#000000"
+            },
+            {
+              "type": "text",
+              "id": "voUJN",
+              "fill": "#000000",
+              "content": "Zdenko",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "YNyMh",
+          "name": "pTitle",
+          "fill": "#000000",
+          "content": "Personas",
+          "fontFamily": "Inter",
+          "fontSize": 18,
+          "fontWeight": "700"
+        },
+        {
+          "type": "frame",
+          "id": "fSiqA",
+          "name": "pScroll",
+          "width": "fill_container",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "tht0P",
+              "name": "p1",
+              "width": 80,
+              "layout": "vertical",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "2FyaO",
+                  "name": "a1",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "haletat",
+                    "link": "https://unsplash.com/@haletat",
+                    "author": "Hale Tat"
+                  },
+                  "clip": true,
+                  "width": 70,
+                  "height": 70,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1689237076064-a963d3c0f9c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ0Njc4NDR8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 35
+                },
+                {
+                  "type": "text",
+                  "id": "Sn8xX",
+                  "fill": "#000000",
+                  "content": "Zdenko",
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "2YbkR",
+              "name": "p2",
+              "width": 80,
+              "layout": "vertical",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "TIjQy",
+                  "name": "a2",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "mehdihraad",
+                    "link": "https://unsplash.com/@mehdihraad",
+                    "author": "Mehdi Raad"
+                  },
+                  "clip": true,
+                  "width": 70,
+                  "height": 70,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1715515012774-501892dcabe4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ0Njc4NDR8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 35
+                },
+                {
+                  "type": "text",
+                  "id": "b70SS",
+                  "fill": "#000000",
+                  "content": "Zdenko B",
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "twizt",
+              "name": "p3",
+              "width": 80,
+              "layout": "vertical",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "1cKep",
+                  "name": "a3",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "aditya_sethia_97",
+                    "link": "https://unsplash.com/@aditya_sethia_97",
+                    "author": "Aditya Sethia"
+                  },
+                  "clip": true,
+                  "width": 70,
+                  "height": 70,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1724225618348-636d316ef39b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ0Njc4NDV8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 35
+                },
+                {
+                  "type": "text",
+                  "id": "8912a",
+                  "fill": "#000000",
+                  "content": "Z. Official",
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "elHJW",
+          "name": "eTitle",
+          "fill": "#000000",
+          "content": "Eventos relacionados",
+          "fontFamily": "Inter",
+          "fontSize": 18,
+          "fontWeight": "700"
+        },
+        {
+          "type": "frame",
+          "id": "l9n9h",
+          "name": "eList",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "hcZLU",
+              "name": "ec1",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 16,
+              "stroke": {
+                "thickness": 1,
+                "fill": "#F3F4F6"
+              },
+              "gap": 16,
+              "padding": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "MCgbN",
+                  "name": "ei1",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "nicolasflor",
+                    "link": "https://unsplash.com/@nicolasflor",
+                    "author": "Nicolás Flor"
+                  },
+                  "clip": true,
+                  "width": 80,
+                  "height": 80,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1768054186905-cee1f184abcc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ0Njc5ODl8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 12
+                },
+                {
+                  "type": "frame",
+                  "id": "BFhMH",
+                  "name": "ecCol1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ALC3n",
+                      "fill": "#000000",
+                      "content": "Zdenko Live Tour",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "PAbzd",
+                      "fill": "#6B7280",
+                      "content": "Atenas, Grecia • 20 May",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Pl9UZ",
+              "name": "ec2",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 16,
+              "stroke": {
+                "thickness": 1,
+                "fill": "#F3F4F6"
+              },
+              "gap": 16,
+              "padding": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "w0w7b",
+                  "name": "ei2",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "the_urbannographer",
+                    "link": "https://unsplash.com/@the_urbannographer",
+                    "author": "Daniel B Ramos"
+                  },
+                  "clip": true,
+                  "width": 80,
+                  "height": 80,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1773017825860-80e303b4f5d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ0Njc5OTB8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 12
+                },
+                {
+                  "type": "frame",
+                  "id": "heMbQ",
+                  "name": "ecCol2",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "dKHnF",
+                      "fill": "#000000",
+                      "content": "Zdenko Art Showcase",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "xanzj",
+                      "fill": "#6B7280",
+                      "content": "Madrid • 15 Jun",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

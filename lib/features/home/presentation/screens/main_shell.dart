@@ -4,6 +4,7 @@ import '../widgets/nav_pill.dart';
 import 'home_screen.dart';
 import 'map_screen.dart';
 import 'profile_screen.dart';
+import 'search_screen.dart';
 
 /// Shell principal con navegación por tabs (Home, Search, Map, Profile).
 ///
@@ -42,10 +43,7 @@ class _MainShellState extends State<MainShell> {
       // Crear el widget UNA vez y cachearlo
       switch (index) {
         case 1:
-          _cachedScreens[1] = const Scaffold(
-            backgroundColor: Colors.white,
-            body: Center(child: Text('Search — TODO')),
-          );
+          _cachedScreens[1] = const SearchScreen();
           break;
         case 2:
           _cachedScreens[2] = const MapScreen();
