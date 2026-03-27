@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -31,25 +33,17 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Map<String, dynamic>> _people = [];
   List<Map<String, dynamic>> _events = [];
 
-  // Búsquedas recientes (mock local por ahora)
-  final List<String> _recentSearches = [
-    'Lollapalooza 2024',
-    'Zdenko',
-    'Conciertos en CDMX',
-  ];
+  // Búsquedas recientes persistentes
+  List<String> _recentSearches = [];
 
-  static const _categories = [
-    {'icon': LucideIcons.music, 'label': 'Música'},
-    {'icon': LucideIcons.palette, 'label': 'Arte'},
-    {'icon': LucideIcons.utensils, 'label': 'Comida'},
-    {'icon': LucideIcons.dumbbell, 'label': 'Deportes'},
-    {'icon': LucideIcons.ticket, 'label': 'Festivales'},
-  ];
+  // Categoría seleccionada
+  String? _selectedCategory;
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_onQueryChanged);
+    _loadRecentSearches();
   }
 
   @override
@@ -60,8 +54,36 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
+  // ─── Búsquedas recientes persistentes ───
+
+  Future<void> _loadRecentSearches() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _recentSearches = prefs.getStringList('recent_searches') ?? [];
+    });
+  }
+
+  Future<void> _saveRecentSearches() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('recent_searches', _recentSearches);
+  }
+
+  void _addToRecentSearches(String query) {
+    _recentSearches.remove(query); // Eliminar duplicado si existe
+    _recentSearches.insert(0, query); // Insertar al inicio
+    if (_recentSearches.length > 10) {
+      _recentSearches = _recentSearches.sublist(0, 10); // Limitar a 10
+    }
+    _saveRecentSearches();
+  }
+
+  // ─── Lógica de búsqueda ───
+
+  String _lastSearchedQuery = '';
+
   void _onQueryChanged() {
     final text = _controller.text.trim();
+    debugPrint('📝 _onQueryChanged: text="$text", _lastSearchedQuery="$_lastSearchedQuery"');
     _debounce?.cancel();
 
     if (text.isEmpty) {
@@ -70,6 +92,7 @@ class _SearchScreenState extends State<SearchScreen> {
         _query = '';
         _people = [];
         _events = [];
+        _lastSearchedQuery = '';
       });
       return;
     }
@@ -77,7 +100,11 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() {
       _isSearching = true;
       _query = text;
+      _selectedCategory = null;
     });
+
+    // No re-buscar si ya tenemos resultados para esta query
+    if (text == _lastSearchedQuery) return;
 
     _debounce = Timer(const Duration(milliseconds: 400), () {
       _performSearch(text);
@@ -87,26 +114,83 @@ class _SearchScreenState extends State<SearchScreen> {
   Future<void> _performSearch(String query) async {
     setState(() => _isLoading = true);
 
+    final supabase = Supabase.instance.client;
+    List<Map<String, dynamic>> peopleRes = [];
+    List<Map<String, dynamic>> eventsRes = [];
+
+    // Buscar personas por username (coincidencias parciales)
+    try {
+      peopleRes = List<Map<String, dynamic>>.from(
+        await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, username, avatar_url')
+            .ilike('username', '%$query%')
+            .limit(10),
+      );
+      debugPrint('🔍 people: ${peopleRes.length} results');
+    } catch (e) {
+      debugPrint('❌ Error buscando personas: $e');
+    }
+
+    // Buscar eventos
+    try {
+      eventsRes = List<Map<String, dynamic>>.from(
+        await supabase
+            .from('events')
+            .select('id, title, address, image_url, date, category')
+            .ilike('title', '%$query%')
+            .limit(10),
+      );
+      debugPrint('🔍 events: ${eventsRes.length} results');
+    } catch (e) {
+      debugPrint('❌ Error buscando eventos: $e');
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _people = peopleRes;
+      _events = eventsRes;
+      _isLoading = false;
+      _lastSearchedQuery = query;
+    });
+  }
+
+  // ─── Filtrar por categoría ───
+
+  Future<void> _searchByCategory(String categoryLabel) async {
+    if (_selectedCategory == categoryLabel) {
+      // Deseleccionar
+      setState(() {
+        _selectedCategory = null;
+        _isSearching = false;
+        _people = [];
+        _events = [];
+        _query = '';
+        _controller.clear();
+      });
+      return;
+    }
+
+    setState(() {
+      _selectedCategory = categoryLabel;
+      _isSearching = true;
+      _isLoading = true;
+      _query = categoryLabel;
+    });
+
     try {
       final supabase = Supabase.instance.client;
 
-      // Buscar personas
-      final peopleRes = await supabase
-          .from('profiles')
-          .select('id, full_name, username, avatar_url')
-          .or('full_name.ilike.%$query%,username.ilike.%$query%')
-          .limit(10);
-
-      // Buscar eventos
       final eventsRes = await supabase
           .from('events')
           .select('id, title, address, image_url, date, category')
-          .ilike('title', '%$query%')
-          .limit(10);
+          .ilike('category', '%$categoryLabel%')
+          .limit(20);
 
       if (!mounted) return;
       setState(() {
-        _people = List<Map<String, dynamic>>.from(peopleRes);
+        _people = [];
         _events = List<Map<String, dynamic>>.from(eventsRes);
         _isLoading = false;
       });
@@ -116,17 +200,24 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  // ─── Acciones ───
+
   void _clearSearch() {
     _controller.clear();
     _focusNode.unfocus();
+    setState(() {
+      _selectedCategory = null;
+    });
   }
 
   void _removeRecent(int index) {
     setState(() => _recentSearches.removeAt(index));
+    _saveRecentSearches();
   }
 
   void _clearAllRecent() {
     setState(() => _recentSearches.clear());
+    _saveRecentSearches();
   }
 
   void _searchFromRecent(String text) {
@@ -134,8 +225,33 @@ class _SearchScreenState extends State<SearchScreen> {
     _focusNode.requestFocus();
   }
 
+  // ─── Navegación ───
+
+  void _onPersonTap(Map<String, dynamic> person) {
+    final id = person['id'] as String?;
+    if (id != null) {
+      context.push('/profile/$id');
+    }
+  }
+
+  void _onEventTap(Map<String, dynamic> event) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Próximamente: detalle de evento',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+        ),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    debugPrint('🏗️ BUILD: _isSearching=$_isSearching, _isLoading=$_isLoading, '
+        'people=${_people.length}, events=${_events.length}, query="$_query"');
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
@@ -152,7 +268,9 @@ class _SearchScreenState extends State<SearchScreen> {
                 0,
               ),
               child: Text(
-                _isSearching ? 'Resultados' : 'Explora',
+                (_isSearching || _selectedCategory != null)
+                    ? 'Resultados'
+                    : 'Explora',
                 style: GoogleFonts.inter(
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
@@ -172,6 +290,12 @@ class _SearchScreenState extends State<SearchScreen> {
                 isSearching: _isSearching,
                 onClear: _clearSearch,
                 onBack: _clearSearch,
+                onSubmitted: (text) {
+                  final query = text.trim();
+                  if (query.isNotEmpty) {
+                    _addToRecentSearches(query);
+                  }
+                },
               ),
             ),
 
@@ -185,12 +309,16 @@ class _SearchScreenState extends State<SearchScreen> {
                       query: _query,
                       people: _people,
                       events: _events,
+                      onPersonTap: _onPersonTap,
+                      onEventTap: _onEventTap,
                     )
                   : _InitialView(
                       recentSearches: _recentSearches,
                       onTapRecent: _searchFromRecent,
                       onRemoveRecent: _removeRecent,
                       onClearAll: _clearAllRecent,
+                      selectedCategory: _selectedCategory,
+                      onCategoryTap: _searchByCategory,
                     ),
             ),
           ],
@@ -211,6 +339,7 @@ class _SearchBar extends StatelessWidget {
     required this.isSearching,
     required this.onClear,
     required this.onBack,
+    required this.onSubmitted,
   });
 
   final TextEditingController controller;
@@ -218,6 +347,7 @@ class _SearchBar extends StatelessWidget {
   final bool isSearching;
   final VoidCallback onClear;
   final VoidCallback onBack;
+  final ValueChanged<String> onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -252,6 +382,8 @@ class _SearchBar extends StatelessWidget {
             child: TextField(
               controller: controller,
               focusNode: focusNode,
+              textInputAction: TextInputAction.search,
+              onSubmitted: onSubmitted,
               style: GoogleFonts.inter(
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
@@ -296,12 +428,16 @@ class _InitialView extends StatelessWidget {
     required this.onTapRecent,
     required this.onRemoveRecent,
     required this.onClearAll,
+    required this.selectedCategory,
+    required this.onCategoryTap,
   });
 
   final List<String> recentSearches;
   final ValueChanged<String> onTapRecent;
   final ValueChanged<int> onRemoveRecent;
   final VoidCallback onClearAll;
+  final String? selectedCategory;
+  final ValueChanged<String> onCategoryTap;
 
   static const _categories = [
     {'icon': LucideIcons.music, 'label': 'Música'},
@@ -371,9 +507,12 @@ class _InitialView extends StatelessWidget {
           spacing: 10,
           runSpacing: 10,
           children: _categories.map((cat) {
+            final label = cat['label'] as String;
             return _CategoryChip(
               icon: cat['icon'] as IconData,
-              label: cat['label'] as String,
+              label: label,
+              isSelected: selectedCategory == label,
+              onTap: () => onCategoryTap(label),
             );
           }).toList(),
         ),
@@ -438,10 +577,17 @@ class _RecentSearchItem extends StatelessWidget {
 // ──────────────────────────────────────────────────────────────────────────────
 
 class _CategoryChip extends StatefulWidget {
-  const _CategoryChip({required this.icon, required this.label});
+  const _CategoryChip({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
 
   @override
   State<_CategoryChip> createState() => _CategoryChipState();
@@ -474,35 +620,48 @@ class _CategoryChipState extends State<_CategoryChip>
 
   @override
   Widget build(BuildContext context) {
+    final isSelected = widget.isSelected;
+
     return GestureDetector(
       onTapDown: (_) => _scaleCtrl.forward(),
       onTapUp: (_) => _scaleCtrl.reverse(),
       onTapCancel: () => _scaleCtrl.reverse(),
       onTap: () {
         HapticFeedback.selectionClick();
-        // TODO: filtrar por categoría
+        widget.onTap();
       },
       child: AnimatedBuilder(
         animation: _scale,
         builder: (context, child) =>
             Transform.scale(scale: _scale.value, child: child),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.gray100,
+            color: isSelected
+                ? const Color(0xFF6366F1)
+                : AppColors.gray100,
             borderRadius: BorderRadius.circular(24),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(widget.icon, size: 16, color: const Color(0xFF6366F1)),
+              Icon(
+                widget.icon,
+                size: 16,
+                color: isSelected
+                    ? AppColors.white
+                    : const Color(0xFF6366F1),
+              ),
               const SizedBox(width: 8),
               Text(
                 widget.label,
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF1F2937),
+                  color: isSelected
+                      ? AppColors.white
+                      : const Color(0xFF1F2937),
                 ),
               ),
             ],
@@ -523,12 +682,16 @@ class _ResultsView extends StatelessWidget {
     required this.query,
     required this.people,
     required this.events,
+    required this.onPersonTap,
+    required this.onEventTap,
   });
 
   final bool isLoading;
   final String query;
   final List<Map<String, dynamic>> people;
   final List<Map<String, dynamic>> events;
+  final ValueChanged<Map<String, dynamic>> onPersonTap;
+  final ValueChanged<Map<String, dynamic>> onEventTap;
 
   @override
   Widget build(BuildContext context) {
@@ -576,12 +739,15 @@ class _ResultsView extends StatelessWidget {
           _SectionHeader(title: 'Personas', onSeeAll: () {}),
           const SizedBox(height: AppSpacing.md),
           SizedBox(
-            height: 96,
+            height: 116,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: people.length,
               separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
-              itemBuilder: (_, i) => _PersonAvatar(person: people[i]),
+              itemBuilder: (_, i) => _PersonAvatar(
+                person: people[i],
+                onTap: () => onPersonTap(people[i]),
+              ),
             ),
           ),
           const SizedBox(height: 28),
@@ -594,7 +760,10 @@ class _ResultsView extends StatelessWidget {
           ...events.map(
             (e) => Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: _EventCard(event: e),
+              child: _EventCard(
+                event: e,
+                onTap: () => onEventTap(e),
+              ),
             ),
           ),
         ],
@@ -647,53 +816,71 @@ class _SectionHeader extends StatelessWidget {
 // ──────────────────────────────────────────────────────────────────────────────
 
 class _PersonAvatar extends StatelessWidget {
-  const _PersonAvatar({required this.person});
+  const _PersonAvatar({required this.person, required this.onTap});
 
   final Map<String, dynamic> person;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final name =
-        person['full_name'] as String? ?? person['username'] as String? ?? '?';
+    final username = person['username'] as String? ?? '?';
+    final first = person['first_name'] as String? ?? '';
+    final last = person['last_name'] as String? ?? '';
+    final fullName = [first, last].where((s) => s.isNotEmpty).join(' ');
     final avatarUrl = person['avatar_url'] as String?;
 
-    return SizedBox(
-      width: 80,
-      child: Column(
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFE0E7FF), width: 2),
-              image: avatarUrl != null && avatarUrl.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(avatarUrl),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-              color: avatarUrl == null || avatarUrl.isEmpty
-                  ? AppColors.gray100
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 80,
+        child: Column(
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFE0E7FF), width: 2),
+                image: avatarUrl != null && avatarUrl.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(avatarUrl),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+                color: avatarUrl == null || avatarUrl.isEmpty
+                    ? AppColors.gray100
+                    : null,
+              ),
+              child: avatarUrl == null || avatarUrl.isEmpty
+                  ? const Icon(LucideIcons.user, color: AppColors.gray400)
                   : null,
             ),
-            child: avatarUrl == null || avatarUrl.isEmpty
-                ? const Icon(LucideIcons.user, color: AppColors.gray400)
-                : null,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF374151),
+            const SizedBox(height: 6),
+            Text(
+              '@$username',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF374151),
+              ),
             ),
-          ),
-        ],
+            if (fullName.isNotEmpty)
+              Text(
+                fullName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.gray400,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -704,9 +891,10 @@ class _PersonAvatar extends StatelessWidget {
 // ──────────────────────────────────────────────────────────────────────────────
 
 class _EventCard extends StatelessWidget {
-  const _EventCard({required this.event});
+  const _EventCard({required this.event, required this.onTap});
 
   final Map<String, dynamic> event;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -721,71 +909,74 @@ class _EventCard extends StatelessWidget {
       if (date.isNotEmpty) date,
     ].join(' • ');
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFF0F0F0)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.04),
-            offset: const Offset(0, 2),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          // Imagen del evento
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: AppColors.gray100,
-              image: imageUrl != null && imageUrl.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(imageUrl),
-                      fit: BoxFit.cover,
-                    )
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFF0F0F0)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.04),
+              offset: const Offset(0, 2),
+              blurRadius: 10,
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            // Imagen del evento
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: AppColors.gray100,
+                image: imageUrl != null && imageUrl.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(imageUrl),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: imageUrl == null || imageUrl.isEmpty
+                  ? const Icon(LucideIcons.calendar, color: AppColors.gray400)
                   : null,
             ),
-            child: imageUrl == null || imageUrl.isEmpty
-                ? const Icon(LucideIcons.calendar, color: AppColors.gray400)
-                : null,
-          ),
-          const SizedBox(width: 14),
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF111827),
+            const SizedBox(width: 14),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF111827),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.gray400,
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.gray400,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

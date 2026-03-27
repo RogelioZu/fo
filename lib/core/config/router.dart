@@ -18,6 +18,7 @@ import '../../features/auth/presentation/screens/profile_setup/setup_interests_s
 import '../../features/auth/presentation/screens/profile_setup/setup_photo_screen.dart';
 import '../../features/home/presentation/screens/main_shell.dart';
 import '../../features/home/presentation/screens/edit_profile_screen.dart';
+import '../../features/home/presentation/screens/public_profile_screen.dart';
 
 import '../constants/app_constants.dart';
 
@@ -143,6 +144,13 @@ class AppRouter {
       path: '/edit-profile',
       name: 'edit-profile',
       builder: (context, state) => const EditProfileScreen(),
+    ),
+    GoRoute(
+      path: '/profile/:userId',
+      name: 'public-profile',
+      builder: (context, state) => PublicProfileScreen(
+        userId: state.pathParameters['userId']!,
+      ),
     ),
   ];
 

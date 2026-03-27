@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/datasources/auth_remote_datasource.dart';
+import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -40,4 +41,16 @@ final currentUserProvider = FutureProvider<AppUser?>((ref) async {
   final client = ref.read(supabaseClientProvider);
   if (client.auth.currentUser == null) return null;
   return ref.read(authRepositoryProvider).getCurrentUser();
+});
+
+/// Provider para obtener el perfil público de un usuario por su ID.
+final publicProfileProvider = FutureProvider.family<AppUser?, String>((ref, userId) async {
+  final client = ref.read(supabaseClientProvider);
+  final data = await client
+      .from('profiles')
+      .select()
+      .eq('id', userId)
+      .maybeSingle();
+  if (data == null) return null;
+  return UserModel.fromJson(data);
 });
