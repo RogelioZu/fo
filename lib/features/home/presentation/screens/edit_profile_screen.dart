@@ -196,6 +196,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.white,
+      resizeToAvoidBottomInset: false,
       body: userAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.black),
@@ -212,6 +213,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             _avatarUrl = user.avatarUrl;
             _originalUsername = user.username?.toLowerCase() ?? '';
           }
+
+          final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
           return Column(
             children: [
@@ -275,7 +278,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               // ─── Content ───
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.only(bottom: 120),
+                  padding: EdgeInsets.only(bottom: 120 + bottomInset),
                   children: [
                     // ─── Photo Section ───
                     Padding(

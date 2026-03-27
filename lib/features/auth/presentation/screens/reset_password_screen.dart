@@ -77,115 +77,129 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       backgroundColor: AppColors.white,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(
-            left: AppSpacing.screenHorizontal,
-            right: AppSpacing.screenHorizontal,
-            top: AppSpacing.screenTop,
-            bottom: AppSpacing.screenBottom,
-          ),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ─── Top Nav ───
-                FoTopNav(
-                  onBack: () => context.go('/login'),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // ─── Título ───
-                Text('Reset\npassword', style: AppTextStyles.heading1),
-                const SizedBox(height: AppSpacing.sm),
-
-                // ─── Descripción ───
-                Text(
-                  "Please type something you'll remember",
-                  style: AppTextStyles.caption,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // ─── New Password ───
-                Column(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom,
+            ),
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.only(
+                left: AppSpacing.screenHorizontal,
+                right: AppSpacing.screenHorizontal,
+                top: AppSpacing.screenTop,
+                bottom: AppSpacing.screenBottom + bottomInset,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('New password', style: AppTextStyles.label),
-                    const SizedBox(height: 8),
-                    FoTextField(
-                      hintText: 'Must be 8+ characters',
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.next,
-                      validator: Validators.password,
-                      suffixIcon: GestureDetector(
-                        onTap: () {
-                          setState(
-                              () => _obscurePassword = !_obscurePassword);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Icon(
-                            _obscurePassword
-                                ? LucideIcons.eyeOff
-                                : LucideIcons.eye,
-                            color: AppColors.placeholder,
-                            size: 20,
+                    // ─── Top Nav ───
+                    FoTopNav(
+                      onBack: () => context.go('/login'),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // ─── Título ───
+                    Text('Reset\npassword', style: AppTextStyles.heading1),
+                    const SizedBox(height: AppSpacing.sm),
+
+                    // ─── Descripción ───
+                    Text(
+                      "Please type something you'll remember",
+                      style: AppTextStyles.caption,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // ─── New Password ───
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('New password', style: AppTextStyles.label),
+                        const SizedBox(height: 8),
+                        FoTextField(
+                          hintText: 'Must be 8+ characters',
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.next,
+                          validator: Validators.password,
+                          suffixIcon: GestureDetector(
+                            onTap: () {
+                              setState(
+                                  () => _obscurePassword = !_obscurePassword);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Icon(
+                                _obscurePassword
+                                    ? LucideIcons.eyeOff
+                                    : LucideIcons.eye,
+                                color: AppColors.placeholder,
+                                size: 20,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // ─── Confirm New Password ───
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Confirm new password', style: AppTextStyles.label),
+                        const SizedBox(height: 8),
+                        FoTextField(
+                          hintText: 'Repeat your password',
+                          controller: _confirmPasswordController,
+                          obscureText: _obscureConfirmPassword,
+                          textInputAction: TextInputAction.done,
+                          validator: (value) => Validators.confirmPassword(
+                            value,
+                            _passwordController.text,
+                          ),
+                          suffixIcon: GestureDetector(
+                            onTap: () {
+                              setState(() => _obscureConfirmPassword =
+                                  !_obscureConfirmPassword);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Icon(
+                                _obscureConfirmPassword
+                                    ? LucideIcons.eyeOff
+                                    : LucideIcons.eye,
+                                color: AppColors.placeholder,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 48),
+
+                    // ─── Reset Button ───
+                    FoButton(
+                      text: 'Reset Password',
+                      onPressed: _onResetPassword,
+                      isLoading: _isLoading,
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.md),
-
-                // ─── Confirm New Password ───
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Confirm new password', style: AppTextStyles.label),
-                    const SizedBox(height: 8),
-                    FoTextField(
-                      hintText: 'Repeat your password',
-                      controller: _confirmPasswordController,
-                      obscureText: _obscureConfirmPassword,
-                      textInputAction: TextInputAction.done,
-                      validator: (value) => Validators.confirmPassword(
-                        value,
-                        _passwordController.text,
-                      ),
-                      suffixIcon: GestureDetector(
-                        onTap: () {
-                          setState(() => _obscureConfirmPassword =
-                              !_obscureConfirmPassword);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Icon(
-                            _obscureConfirmPassword
-                                ? LucideIcons.eyeOff
-                                : LucideIcons.eye,
-                            color: AppColors.placeholder,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const Spacer(),
-
-                // ─── Reset Button ───
-                FoButton(
-                  text: 'Reset Password',
-                  onPressed: _onResetPassword,
-                  isLoading: _isLoading,
-                ),
-              ],
+              ),
             ),
           ),
         ),

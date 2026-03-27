@@ -67,57 +67,71 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       backgroundColor: AppColors.white,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(
-            left: AppSpacing.screenHorizontal,
-            right: AppSpacing.screenHorizontal,
-            top: AppSpacing.screenTop,
-            bottom: AppSpacing.screenBottom,
-          ),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ─── Top Nav ───
-                FoTopNav(
-                  onBack: () => context.go('/login'),
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom,
+            ),
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.only(
+                left: AppSpacing.screenHorizontal,
+                right: AppSpacing.screenHorizontal,
+                top: AppSpacing.screenTop,
+                bottom: AppSpacing.screenBottom + bottomInset,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ─── Top Nav ───
+                    FoTopNav(
+                      onBack: () => context.go('/login'),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // ─── Título ───
+                    Text('Forgot\npassword?', style: AppTextStyles.heading1),
+                    const SizedBox(height: AppSpacing.sm),
+
+                    // ─── Descripción ───
+                    Text(
+                      "Don't worry! It happens. Please enter the\nemail associated with your account.",
+                      style: AppTextStyles.caption,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // ─── Email ───
+                    FoLabeledInput(
+                      label: 'Email address',
+                      hintText: 'hello@example.com',
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.done,
+                      validator: Validators.email,
+                    ),
+
+                    const SizedBox(height: 48),
+
+                    // ─── Send Code Button ───
+                    FoButton(
+                      text: 'Send code',
+                      onPressed: _onSendCode,
+                      isLoading: _isLoading,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // ─── Título ───
-                Text('Forgot\npassword?', style: AppTextStyles.heading1),
-                const SizedBox(height: AppSpacing.sm),
-
-                // ─── Descripción ───
-                Text(
-                  "Don't worry! It happens. Please enter the\nemail associated with your account.",
-                  style: AppTextStyles.caption,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // ─── Email ───
-                FoLabeledInput(
-                  label: 'Email address',
-                  hintText: 'hello@example.com',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.done,
-                  validator: Validators.email,
-                ),
-
-                const Spacer(),
-
-                // ─── Send Code Button ───
-                FoButton(
-                  text: 'Send code',
-                  onPressed: _onSendCode,
-                  isLoading: _isLoading,
-                ),
-              ],
+              ),
             ),
           ),
         ),

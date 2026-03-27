@@ -74,8 +74,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       backgroundColor: AppColors.white,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: SingleChildScrollView(
           child: ConstrainedBox(
@@ -84,12 +87,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   MediaQuery.of(context).padding.top -
                   MediaQuery.of(context).padding.bottom,
             ),
-            child: Padding(
-              padding: const EdgeInsets.only(
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.only(
                 left: AppSpacing.screenHorizontal,
                 right: AppSpacing.screenHorizontal,
                 top: AppSpacing.screenTop,
-                bottom: AppSpacing.screenBottom,
+                bottom: AppSpacing.screenBottom + bottomInset,
               ),
               child: Form(
                 key: _formKey,

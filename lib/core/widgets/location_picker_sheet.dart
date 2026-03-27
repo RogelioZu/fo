@@ -32,7 +32,9 @@ class LocationPickerSheet extends ConsumerWidget {
 
     final maxHeight = MediaQuery.of(context).size.height * 0.85;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
       constraints: BoxConstraints(maxHeight: maxHeight),
       padding: EdgeInsets.only(bottom: bottomInset),
       decoration: const BoxDecoration(

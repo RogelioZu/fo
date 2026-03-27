@@ -86,105 +86,123 @@ class _SetupUsernameScreenState extends ConsumerState<SetupUsernameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       backgroundColor: AppColors.white,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Column(
           children: [
             const ProgressBar(currentStep: 2),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  left: AppSpacing.screenHorizontal,
-                  right: AppSpacing.screenHorizontal,
-                  top: AppSpacing.xxl,
-                  bottom: AppSpacing.screenHorizontal,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Choose a\nusername",
-                        style: AppTextStyles.heading2),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'This is how others will find you',
-                      style: AppTextStyles.body,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Username input
-                    FoTextField(
-                      hintText: 'username',
-                      prefixIcon: PhosphorIconsRegular.at,
-                      controller: _usernameController,
-                      onChanged: _onUsernameChanged,
-                      textInputAction: TextInputAction.done,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-
-                    // Validation indicator
-                    if (_isChecking)
-                      Row(
-                        children: [
-                          const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.secondaryText,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Checking availability...',
-                            style: AppTextStyles.small,
-                          ),
-                        ],
-                      )
-                    else if (_isAvailable == true)
-                      Row(
-                        children: [
-                          const Icon(
-                            PhosphorIconsBold.checkCircle,
-                            color: AppColors.success,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Username is available!',
-                            style: AppTextStyles.small.copyWith(
-                              color: AppColors.success,
-                            ),
-                          ),
-                        ],
-                      )
-                    else if (_isAvailable == false)
-                      Row(
-                        children: [
-                          const Icon(
-                            PhosphorIconsBold.xCircle,
-                            color: AppColors.error,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Username is already taken',
-                            style: AppTextStyles.small.copyWith(
-                              color: AppColors.error,
-                            ),
-                          ),
-                        ],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
+                      child: IntrinsicHeight(
+                        child: AnimatedPadding(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOutCubic,
+                          padding: EdgeInsets.only(
+                            left: AppSpacing.screenHorizontal,
+                            right: AppSpacing.screenHorizontal,
+                            top: AppSpacing.xxl,
+                            bottom: AppSpacing.screenHorizontal + bottomInset,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Choose a\nusername",
+                                  style: AppTextStyles.heading2),
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                'This is how others will find you',
+                                style: AppTextStyles.body,
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
 
-                    const Spacer(),
+                              // Username input
+                              FoTextField(
+                                hintText: 'username',
+                                prefixIcon: PhosphorIconsRegular.at,
+                                controller: _usernameController,
+                                onChanged: _onUsernameChanged,
+                                textInputAction: TextInputAction.done,
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
 
-                    FoButton(
-                      text: 'Continue',
-                      onPressed: _onContinue,
-                      enabled: _isAvailable == true,
+                              // Validation indicator
+                              if (_isChecking)
+                                Row(
+                                  children: [
+                                    const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.secondaryText,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Checking availability...',
+                                      style: AppTextStyles.small,
+                                    ),
+                                  ],
+                                )
+                              else if (_isAvailable == true)
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      PhosphorIconsBold.checkCircle,
+                                      color: AppColors.success,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Username is available!',
+                                      style: AppTextStyles.small.copyWith(
+                                        color: AppColors.success,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              else if (_isAvailable == false)
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      PhosphorIconsBold.xCircle,
+                                      color: AppColors.error,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Username is already taken',
+                                      style: AppTextStyles.small.copyWith(
+                                        color: AppColors.error,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                              const Spacer(),
+
+                              FoButton(
+                                text: 'Continue',
+                                onPressed: _onContinue,
+                                enabled: _isAvailable == true,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ],

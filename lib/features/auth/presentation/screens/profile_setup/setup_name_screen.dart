@@ -46,8 +46,11 @@ class _SetupNameScreenState extends ConsumerState<SetupNameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       backgroundColor: AppColors.white,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Column(
           children: [
@@ -56,55 +59,70 @@ class _SetupNameScreenState extends ConsumerState<SetupNameScreen> {
 
             // ─── Body ───
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  left: AppSpacing.screenHorizontal,
-                  right: AppSpacing.screenHorizontal,
-                  top: AppSpacing.xxl,
-                  bottom: AppSpacing.screenHorizontal,
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("What's your\nname?",
-                          style: AppTextStyles.heading2),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        "Let's get to know you better",
-                        style: AppTextStyles.body,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
-                      const SizedBox(height: AppSpacing.lg),
+                      child: IntrinsicHeight(
+                        child: AnimatedPadding(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOutCubic,
+                          padding: EdgeInsets.only(
+                            left: AppSpacing.screenHorizontal,
+                            right: AppSpacing.screenHorizontal,
+                            top: AppSpacing.xxl,
+                            bottom: AppSpacing.screenHorizontal + bottomInset,
+                          ),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("What's your\nname?",
+                                    style: AppTextStyles.heading2),
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  "Let's get to know you better",
+                                  style: AppTextStyles.body,
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
 
-                      // First name
-                      FoTextField(
-                        hintText: 'First name',
-                        prefixIcon: PhosphorIconsRegular.user,
-                        controller: _firstNameController,
-                        textInputAction: TextInputAction.next,
-                        validator: Validators.name,
+                                // First name
+                                FoTextField(
+                                  hintText: 'First name',
+                                  prefixIcon: PhosphorIconsRegular.user,
+                                  controller: _firstNameController,
+                                  textInputAction: TextInputAction.next,
+                                  validator: Validators.name,
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+
+                                // Last name
+                                FoTextField(
+                                  hintText: 'Last name',
+                                  prefixIcon: PhosphorIconsRegular.user,
+                                  controller: _lastNameController,
+                                  textInputAction: TextInputAction.done,
+                                  validator: Validators.name,
+                                ),
+
+                                const Spacer(),
+
+                                FoButton(
+                                  text: 'Continue',
+                                  onPressed: _onContinue,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Last name
-                      FoTextField(
-                        hintText: 'Last name',
-                        prefixIcon: PhosphorIconsRegular.user,
-                        controller: _lastNameController,
-                        textInputAction: TextInputAction.done,
-                        validator: Validators.name,
-                      ),
-
-                      const Spacer(),
-
-                      FoButton(
-                        text: 'Continue',
-                        onPressed: _onContinue,
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
