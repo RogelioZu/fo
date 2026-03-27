@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../widgets/app_search_bar.dart';
 
 /// Pantalla de búsqueda de Finding Out.
 /// Dos estados: inicial (recientes + categorías) y activo (resultados).
@@ -128,7 +129,7 @@ class _SearchScreenState extends State<SearchScreen> {
             .limit(10),
       );
     } catch (e) {
-      debugPrint('Error buscando personas: $e');
+      debugPrint('Error searching people: $e');
     }
 
     // Buscar eventos
@@ -141,7 +142,7 @@ class _SearchScreenState extends State<SearchScreen> {
             .limit(10),
       );
     } catch (e) {
-      debugPrint('Error buscando eventos: $e');
+      debugPrint('Error searching events: $e');
     }
 
     if (!mounted) return;
@@ -236,7 +237,7 @@ class _SearchScreenState extends State<SearchScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Próximamente: detalle de evento',
+          'Coming soon: event details',
           style: GoogleFonts.inter(fontWeight: FontWeight.w500),
         ),
         duration: const Duration(seconds: 2),
@@ -265,8 +266,8 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
               child: Text(
                 (_isSearching || _selectedCategory != null)
-                    ? 'Resultados'
-                    : 'Explora',
+                    ? 'Results'
+                    : 'Explore',
                 style: GoogleFonts.inter(
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
@@ -280,12 +281,14 @@ class _SearchScreenState extends State<SearchScreen> {
             // ─── Search bar ───
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: _SearchBar(
+              child: AppSearchBar(
                 controller: _controller,
                 focusNode: _focusNode,
-                isSearching: _isSearching,
+                hintText: 'Search events, people...',
+                showBackArrow: _isSearching,
                 onClear: _clearSearch,
                 onBack: _clearSearch,
+                textInputAction: TextInputAction.search,
                 onSubmitted: (text) {
                   final query = text.trim();
                   if (query.isNotEmpty) {
@@ -324,95 +327,6 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Search Bar
-// ──────────────────────────────────────────────────────────────────────────────
-
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({
-    required this.controller,
-    required this.focusNode,
-    required this.isSearching,
-    required this.onClear,
-    required this.onBack,
-    required this.onSubmitted,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final bool isSearching;
-  final VoidCallback onClear;
-  final VoidCallback onBack;
-  final ValueChanged<String> onSubmitted;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.04),
-            offset: const Offset(0, 2),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: Row(
-        children: [
-          // Leading icon: search o back arrow
-          GestureDetector(
-            onTap: isSearching ? onBack : null,
-            child: Icon(
-              isSearching ? LucideIcons.arrowLeft : LucideIcons.search,
-              size: 18,
-              color: isSearching ? AppColors.black : AppColors.gray400,
-            ),
-          ),
-          const SizedBox(width: 10),
-          // Input
-          Expanded(
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              textInputAction: TextInputAction.search,
-              onSubmitted: onSubmitted,
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-                color: AppColors.black,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Busca eventos, personas...',
-                hintStyle: GoogleFonts.inter(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.gray400,
-                ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-          // Clear button
-          if (isSearching)
-            GestureDetector(
-              onTap: onClear,
-              child: const Icon(
-                LucideIcons.x,
-                size: 18,
-                color: AppColors.gray400,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Initial View (recientes + categorías)
@@ -436,11 +350,11 @@ class _InitialView extends StatelessWidget {
   final ValueChanged<String> onCategoryTap;
 
   static const _categories = [
-    {'icon': LucideIcons.music, 'label': 'Música'},
-    {'icon': LucideIcons.palette, 'label': 'Arte'},
-    {'icon': LucideIcons.utensils, 'label': 'Comida'},
-    {'icon': LucideIcons.dumbbell, 'label': 'Deportes'},
-    {'icon': LucideIcons.ticket, 'label': 'Festivales'},
+    {'icon': LucideIcons.music, 'label': 'Music'},
+    {'icon': LucideIcons.palette, 'label': 'Art'},
+    {'icon': LucideIcons.utensils, 'label': 'Food'},
+    {'icon': LucideIcons.dumbbell, 'label': 'Sports'},
+    {'icon': LucideIcons.ticket, 'label': 'Festivals'},
   ];
 
   @override
@@ -458,7 +372,7 @@ class _InitialView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Búsquedas recientes',
+                'Recent searches',
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -468,7 +382,7 @@ class _InitialView extends StatelessWidget {
               GestureDetector(
                 onTap: onClearAll,
                 child: Text(
-                  'Borrar todo',
+                  'Clear all',
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -491,7 +405,7 @@ class _InitialView extends StatelessWidget {
 
         // ─── Categorías populares ───
         Text(
-          'Categorías populares',
+          'Popular categories',
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -711,7 +625,7 @@ class _ResultsView extends StatelessWidget {
             Icon(LucideIcons.searchX, size: 40, color: AppColors.gray200),
             const SizedBox(height: AppSpacing.ms),
             Text(
-              'Sin resultados para "$query"',
+              'No results for "$query"',
               style: GoogleFonts.inter(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
@@ -732,7 +646,7 @@ class _ResultsView extends StatelessWidget {
       children: [
         // ─── Personas ───
         if (hasPeople) ...[
-          _SectionHeader(title: 'Personas', onSeeAll: () {}),
+          _SectionHeader(title: 'People', onSeeAll: () {}),
           const SizedBox(height: AppSpacing.md),
           SizedBox(
             height: 116,
@@ -751,7 +665,7 @@ class _ResultsView extends StatelessWidget {
 
         // ─── Eventos ───
         if (hasEvents) ...[
-          _SectionHeader(title: 'Eventos relacionados', onSeeAll: () {}),
+          _SectionHeader(title: 'Related events', onSeeAll: () {}),
           const SizedBox(height: AppSpacing.md),
           ...events.map(
             (e) => Padding(
@@ -794,7 +708,7 @@ class _SectionHeader extends StatelessWidget {
         GestureDetector(
           onTap: onSeeAll,
           child: Text(
-            'Ver todos',
+            'See all',
             style: GoogleFonts.inter(
               fontSize: 13,
               fontWeight: FontWeight.w500,

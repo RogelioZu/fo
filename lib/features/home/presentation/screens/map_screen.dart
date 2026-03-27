@@ -10,12 +10,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../widgets/app_search_bar.dart';
 
 // ─────────────────────────────────────────────
 // Cached text styles — avoids repeated GoogleFonts lookups per frame.
 // ─────────────────────────────────────────────
-final _tsSearchInput = GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w400, color: AppColors.black);
-final _tsSearchHint = GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w400, color: AppColors.gray400);
 final _tsChip = GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600);
 final _tsSheetTitle = GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.black);
 final _tsSheetCount = GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.gray400);
@@ -489,49 +488,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
   // ─── Search Bar ───
 
   Widget _buildSearchBar() {
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x20000000),
-            offset: Offset(0, 4),
-            blurRadius: 12,
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          const Icon(LucideIcons.search, size: 20, color: AppColors.gray400),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              onChanged: _onSearchChanged,
-              style: _tsSearchInput,
-              decoration: InputDecoration(
-                hintText: 'Search events, venues...',
-                hintStyle: _tsSearchHint,
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                isDense: true,
-              ),
-            ),
-          ),
-          if (_searchController.text.isNotEmpty)
-            GestureDetector(
-              onTap: _onSearchClear,
-              child: const Padding(
-                padding: EdgeInsets.all(8),
-                child: Icon(LucideIcons.x, size: 18, color: AppColors.gray400),
-              ),
-            ),
-        ],
-      ),
+    return AppSearchBar(
+      controller: _searchController,
+      focusNode: _searchFocusNode,
+      hintText: 'Search events, venues...',
+      onChanged: _onSearchChanged,
+      onClear: _onSearchClear,
     );
   }
 
