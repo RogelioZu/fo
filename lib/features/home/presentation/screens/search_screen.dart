@@ -83,7 +83,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _onQueryChanged() {
     final text = _controller.text.trim();
-    debugPrint('📝 _onQueryChanged: text="$text", _lastSearchedQuery="$_lastSearchedQuery"');
+
     _debounce?.cancel();
 
     if (text.isEmpty) {
@@ -124,12 +124,11 @@ class _SearchScreenState extends State<SearchScreen> {
         await supabase
             .from('profiles')
             .select('id, first_name, last_name, username, avatar_url')
-            .ilike('username', '%$query%')
+            .or('username.ilike.%$query%,first_name.ilike.%$query%,last_name.ilike.%$query%')
             .limit(10),
       );
-      debugPrint('🔍 people: ${peopleRes.length} results');
     } catch (e) {
-      debugPrint('❌ Error buscando personas: $e');
+      debugPrint('Error buscando personas: $e');
     }
 
     // Buscar eventos
@@ -141,9 +140,8 @@ class _SearchScreenState extends State<SearchScreen> {
             .ilike('title', '%$query%')
             .limit(10),
       );
-      debugPrint('🔍 events: ${eventsRes.length} results');
     } catch (e) {
-      debugPrint('❌ Error buscando eventos: $e');
+      debugPrint('Error buscando eventos: $e');
     }
 
     if (!mounted) return;
@@ -250,8 +248,6 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🏗️ BUILD: _isSearching=$_isSearching, _isLoading=$_isLoading, '
-        'people=${_people.length}, events=${_events.length}, query="$_query"');
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
@@ -857,7 +853,7 @@ class _PersonAvatar extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              '@$username',
+              '$username',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,

@@ -114,30 +114,30 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: AppSpacing.ms),
 
-                    // Name
-                    Text(
-                      user.displayName,
-                      style: GoogleFonts.inter(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.black,
+                    // Username (destacado)
+                    if (user.username != null)
+                      Text(
+                        user.username!,
+                        style: GoogleFonts.inter(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.black,
+                        ),
                       ),
-                    ),
                     const SizedBox(height: AppSpacing.sm),
 
-                    // Username + Location
+                    // Name + Location
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (user.username != null)
-                          Text(
-                            '@${user.username}',
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400,
-                              color: AppColors.gray500,
-                            ),
+                        Text(
+                          user.displayName,
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.gray500,
                           ),
+                        ),
                         if (user.city != null) ...[
                           const SizedBox(width: AppSpacing.sm),
                           Container(
