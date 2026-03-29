@@ -19,6 +19,7 @@ import '../../features/auth/presentation/screens/profile_setup/setup_photo_scree
 import '../../features/home/presentation/screens/main_shell.dart';
 import '../../features/home/presentation/screens/edit_profile_screen.dart';
 import '../../features/home/presentation/screens/public_profile_screen.dart';
+import '../../features/events/presentation/screens/create_event_screen.dart';
 
 import '../constants/app_constants.dart';
 
@@ -151,6 +152,11 @@ class AppRouter {
       builder: (context, state) => PublicProfileScreen(
         userId: state.pathParameters['userId']!,
       ),
+    ),
+    GoRoute(
+      path: '/create-event',
+      name: 'create-event',
+      builder: (context, state) => const CreateEventScreen(),
     ),
   ];
 

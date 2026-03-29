@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../widgets/nav_pill.dart';
 import 'home_screen.dart';
 import 'map_screen.dart';
@@ -66,6 +70,41 @@ class _MainShellState extends State<MainShell> {
             index: _currentIndex,
             children: _cachedScreens,
           ),
+
+          // ─── Create Event FAB (solo visible en Home) ───
+          if (_currentIndex == 0)
+            Positioned(
+              right: 24,
+              bottom: 100, // Justo arriba del NavPill
+              child: GestureDetector(
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  context.push('/create-event');
+                },
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppColors.black,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.black.withValues(alpha: 0.25),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    LucideIcons.plus,
+                    color: AppColors.white,
+                    size: 26,
+                  ),
+                ),
+              ),
+            ),
+
+          // ─── NavPill ───
           Positioned(
             left: 0,
             right: 0,
