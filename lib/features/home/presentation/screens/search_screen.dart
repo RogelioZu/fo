@@ -137,7 +137,7 @@ class _SearchScreenState extends State<SearchScreen> {
       eventsRes = List<Map<String, dynamic>>.from(
         await supabase
             .from('events')
-            .select('id, title, address, image_url, date, category')
+            .select('id, title, address, image_url, start_date, category_id')
             .ilike('title', '%$query%')
             .limit(10),
       );
@@ -183,8 +183,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
       final eventsRes = await supabase
           .from('events')
-          .select('id, title, address, image_url, date, category')
-          .ilike('category', '%$categoryLabel%')
+          .select('id, title, address, image_url, start_date, category_id')
+          .ilike('category_id', '%$categoryLabel%')
           .limit(20);
 
       if (!mounted) return;
@@ -810,7 +810,7 @@ class _EventCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = event['title'] as String? ?? '';
     final address = event['address'] as String? ?? '';
-    final date = event['date'] as String? ?? '';
+    final date = event['start_date'] as String? ?? '';
     final imageUrl = event['image_url'] as String?;
 
     // Formatear subtítulo
