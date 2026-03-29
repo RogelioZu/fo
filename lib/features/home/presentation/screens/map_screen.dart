@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -135,6 +136,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
   bool _isFollowingUser = false;
   bool _isLocating = false;
 
+  // Date filter
+  DateTime _selectedDate = DateTime.now();
+
   // Default position (Monterrey, MX — se actualiza con GPS)
   static const _defaultPosition = LatLng(25.6866, -100.3161);
   LatLng _currentPosition = _defaultPosition;
@@ -228,12 +232,24 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   Future<void> _loadEvents() async {
     try {
+      final dayStart = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
+      final dayEnd = dayStart.add(const Duration(days: 1));
+
       final data = await Supabase.instance.client
           .from('events')
           .select()
+          .eq('status', 'published')
+          .eq('is_public', true)
           .not('location_lat', 'is', null)
           .not('location_lng', 'is', null)
-          .order('start_date', ascending: true);
+          .gte('start_date', dayStart.toIso8601String())
+          .lt('start_date', dayEnd.toIso8601String())
+          .order('start_date', ascending: true)
+          .limit(100);
 
       if (!mounted) return;
       final events = (data as List).map((e) => MapEvent.fromJson(e)).toList();
@@ -245,6 +261,41 @@ class _MapScreenState extends ConsumerState<MapScreen>
     } catch (e) {
       debugPrint('Error loading events: $e');
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _onDateSelected(DateTime date) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _selectedDate = date;
+      _isLoading = true;
+      _selectedEvent = null;
+    });
+    _loadEvents();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.black,
+              onPrimary: AppColors.white,
+              surface: AppColors.white,
+              onSurface: AppColors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      _onDateSelected(picked);
     }
   }
 
@@ -436,7 +487,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     child: _buildSearchResults(),
                   ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
+
+                // ─── Date Bar ───
+                _buildDateBar(),
+
+                const SizedBox(height: 10),
 
                 // ─── Category Chips ───
                 _buildCategoryChips(),
@@ -578,6 +634,118 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   // ─── Category Chips ───
+
+  // ─── Date Filter Bar ───
+
+  Widget _buildDateBar() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selected = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+    );
+
+    return SizedBox(
+      height: 44,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        itemCount: 8, // calendar button + 7 days
+        itemBuilder: (context, index) {
+          // First item: calendar picker button
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: _pickDate,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.black.withValues(alpha: 0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      LucideIcons.calendarDays,
+                      size: 18,
+                      color: AppColors.black,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          final dayOffset = index - 1;
+          final date = today.add(Duration(days: dayOffset));
+          final isSelected = date == selected;
+          final isToday = dayOffset == 0;
+
+          final dayAbbr = isToday
+              ? 'Today'
+              : DateFormat('EEE').format(date); // Mon, Tue...
+          final dayNum = date.day.toString();
+
+          return Padding(
+            padding: EdgeInsets.only(right: index < 7 ? 6 : 0),
+            child: GestureDetector(
+              onTap: () => _onDateSelected(date),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: isToday ? 56 : 48,
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.black : AppColors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isSelected
+                          ? AppColors.black.withValues(alpha: 0.2)
+                          : AppColors.black.withValues(alpha: 0.06),
+                      blurRadius: isSelected ? 10 : 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      dayAbbr,
+                      style: GoogleFonts.inter(
+                        fontSize: isToday ? 10 : 11,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? AppColors.white.withValues(alpha: 0.7)
+                            : AppColors.gray500,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      dayNum,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: isSelected ? AppColors.white : AppColors.black,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   Widget _buildCategoryChips() {
     return SizedBox(
